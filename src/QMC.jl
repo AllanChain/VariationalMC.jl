@@ -1,10 +1,12 @@
 # Currently following Thijssen Computational Phsics, page 375
 
 using Statistics
+using LinearAlgebra
+using StructArrays
 using Zygote
 
 const Params = Vector{Float64}
-const Electrons = Vector{Float64}
+const Electrons = AbstractArray{Float64,1}
 const BatchElectrons = Matrix{Float64}
 const BatchLogPsi = Matrix{Float64} # Row vector
 
@@ -13,26 +15,52 @@ function dropdims_by(func::Function, a; dims)
     return dropdims(func(a, dims = dims), dims = dims)
 end
 
-function log_sign_psi(
-    params::Params,
-    electrons::BatchElectrons,
-)::Tuple{BatchLogPsi,Vector{Int8}}
-    alpha = params[1]
-    return -alpha * electrons .^ 2, ones(Int8, size(electrons, 1))
-end
-
-function log_psi(params::Params, electrons::BatchElectrons)::BatchLogPsi
-    return log_sign_psi(params, electrons)[1]
-end
-
-function local_energy(params::Params, electrons::BatchElectrons)::Vector{Float64}
+function log_sgn_ψ(params::Params, electrons::Electrons)::Tuple{Float64,Int8}
     α = params[1]
-    x = dropdims(electrons, dims = 1)
-    return @. α + (1 / 2 - 2 * α^2) * x^2
+    # x = reshape(electrons, 3, :)
+    # r1 = norm(x[1])
+    # r2 = norm(x[2])
+    # r12 = norm(x[1] - x[2])
+    # return -2r1 - 2r2 + r12 / 2 / (1 + α * r12), Int8(1)
+    return - α * norm(electrons), Int8(1)
 end
 
-function init_walkers(batch_size::Integer, ndim::Integer)
-    return ones(ndim, batch_size) + randn(ndim, batch_size)
+function batch_log_sgn_ψ(
+    params::Params,
+    batch_electrons::BatchElectrons,
+)::Tuple{BatchLogPsi,Vector{Int8}}
+    # return broadcast(electrons -> log_sgn_ψ(params, electrons), batch_electrons)
+    result = StructArray([
+        log_sgn_ψ(params, electrons) for electrons in eachcol(batch_electrons)
+    ])
+    log_ψ, sgn_ψ = StructArrays.components(result)
+    return adjoint(log_ψ), sgn_ψ
+end
+
+batch_log_ψ = (params, batch_electrons) -> batch_log_sgn_ψ(params, batch_electrons)[1]
+
+function local_energy(params::Params, electrons::Electrons)::Float64
+    α = params[1]
+    # x = reshape(electrons, 3, :)
+    # r1 = norm(x[1])
+    # r2 = norm(x[2])
+    # r12 = norm(x[1] - x[2])
+    # return -4 + 1 / r12 - 1 / 4 / (1 + α * r12)^4 - 1 / r12 / (1 + α * r12)^3 +
+    #        dot(x[1] / r1 - x[2] / r2, x[1] - x[2]) / r12 / (1 + α * r12)^2
+    r = norm(electrons)
+    return - 1/ r - α * (α-2/r)/2
+end
+
+function batch_local_energy(
+    params::Params,
+    batch_electrons::BatchElectrons,
+)::Vector{Float64}
+    # return broadcast(electrons -> local_energy(params, electrons), batch_electrons)
+    return [local_energy(params, electrons) for electrons in eachcol(batch_electrons)]
+end
+
+function init_walkers(batch_size::Integer, nelectrons::Integer, ndim::Integer = 3)
+    return ones(ndim * nelectrons, batch_size) + randn(ndim * nelectrons, batch_size)
 end
 
 function mcmc_walk(
@@ -41,7 +69,7 @@ function mcmc_walk(
     width::Float64,
 )::Tuple{BatchElectrons,Float64}
     new_walkers = electrons + randn(size(electrons)) * width
-    p = exp.(2(log_psi(params, new_walkers) - log_psi(params, electrons)))
+    p = exp.(2(batch_log_ψ(params, new_walkers) - batch_log_ψ(params, electrons)))
     cond = rand(Float64, size(p)) .< p
     # println(resize(cond, size(electrons)))
     new_walkers = ifelse.(cond, new_walkers, electrons)
@@ -79,22 +107,20 @@ end
 
 function main(batch_size::Integer)
 
-    params = [0.4]
+    params = [0.1]
     # println(log_psi(params, Array([[0.0] [1.0] [-1.0]])))
     walkers = init_walkers(batch_size, 1)
-    # println(walkers)
-    el = local_energy(params, walkers)
+    el = batch_local_energy(params, walkers)
     ev = Statistics.mean(el)
-    println(ev)
 
     width = 0.1
-    walkers, width, _ = batch_mcmc_walk(100, params, walkers, width, adjust = true)
+    walkers, width, _ = batch_mcmc_walk(5000, params, walkers, width, adjust = true)
 
     for i = 1:50
-        el = local_energy(params, walkers)
+        el = batch_local_energy(params, walkers)
         ev = Statistics.mean(el)
         σ²e = var(el)
-        ∂p_logψ = Zygote.forwarddiff(params -> log_psi(params, walkers), params)
+        ∂p_logψ = Zygote.forwarddiff(params -> batch_log_ψ(params, walkers), params)
         el = reshape(el, (1, batch_size))
         ∂p_E =
             2(
