@@ -1,0 +1,10 @@
+[systems]
+basis = "sto-3g"
+
+[[system.atoms]]
+name = "H"
+coord = [0.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [1.4, 0.0, 0.0]

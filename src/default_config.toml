@@ -1,0 +1,8 @@
+[qmc]
+iterations = 50
+batch_size = 32
+
+[mcmc]
+burn_in_steps = 100
+steps = 100
+
