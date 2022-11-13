@@ -22,7 +22,7 @@ function log_sgn_ψ(params::Params, electrons::Electrons)::Tuple{Float64,Int8}
     # r2 = norm(x[2])
     # r12 = norm(x[1] - x[2])
     # return -2r1 - 2r2 + r12 / 2 / (1 + α * r12), Int8(1)
-    return - α * norm(electrons), Int8(1)
+    return -α * norm(electrons), Int8(1)
 end
 
 function batch_log_sgn_ψ(
@@ -48,7 +48,7 @@ function local_energy(params::Params, electrons::Electrons)::Float64
     # return -4 + 1 / r12 - 1 / 4 / (1 + α * r12)^4 - 1 / r12 / (1 + α * r12)^3 +
     #        dot(x[1] / r1 - x[2] / r2, x[1] - x[2]) / r12 / (1 + α * r12)^2
     r = norm(electrons)
-    return - 1/ r - α * (α-2/r)/2
+    return -1 / r - α * (α - 2 / r) / 2
 end
 
 function batch_local_energy(

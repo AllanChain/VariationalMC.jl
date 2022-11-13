@@ -4,7 +4,11 @@ function sum_gaussian(l, c, a, r²)
     return exp2(l) .* (2 / π)^(3 / 4) .* sum(c .* a .^ ((2l + 3) / 4) .* exp.(-a .* r²))
 end
 
-function eval_ao(molecule::Molecule, x::Vector{T}) where {T<:Number}
+function eval_ao(molecule::Molecule, x::AbstractMatrix{T}) where {T<:Number}
+    return hcat([eval_ao(molecule, x1) for x1 in eachcol(x)]...)
+end
+
+function eval_ao(molecule::Molecule, x::AbstractVector{T}) where {T<:Number}
     ao = Vector{Number}()
     for atom in molecule.atoms
         r = x - atom.coord
