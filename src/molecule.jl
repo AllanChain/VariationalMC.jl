@@ -1,9 +1,9 @@
 include("./basis.jl")
 
 struct Atom
-    coord::Vector{Number}
-    basis::Basis
     charge::Number
+    coord::Vector{AbstractFloat}
+    basis::Vector{Basis}
 end
 
 struct Molecule

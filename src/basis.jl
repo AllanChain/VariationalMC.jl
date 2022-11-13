@@ -22,9 +22,11 @@ function read_basis(basis_name::String)
                         all_basis[element] = []
                     end
                     current_basis = hcat(current_basis...)
+                    bas_exp = current_basis[1, :]
+                    bas_coeff = transpose(current_basis[2:end, :])
                     push!(
                         all_basis[element],
-                        Basis(orbital, current_basis[1, :], current_basis[2:end, :]),
+                        Basis(orbital, bas_exp, bas_coeff),
                     )
                 end
                 if !startswith(line, "END")
