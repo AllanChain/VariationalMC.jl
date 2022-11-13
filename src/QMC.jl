@@ -1,7 +1,7 @@
 module QMC
 
 module molecule
-export read_basis, Atom, Molecule, eval_ao
+export read_basis, Atom, Molecule, eval_ao, number_ao
 include("basis.jl") 
 include("molecule.jl")
 include("gto.jl")

@@ -40,6 +40,7 @@ using Test
         >>> mol.eval_gto("GTOval_sph", [[0.7, 0, 0]])
         array([[0.32583116, 0.32583116]])
         =#
+        @test number_ao(H₂) == 2
         @test size(ao) == (2,)
         @test ao[1] ≈ 0.32583116 atol = 1e-7
         @test ao[2] ≈ 0.32583116 atol = 1e-7
@@ -62,6 +63,7 @@ using Test
             Atom(3, [5.0, 0.0, 0.0], Li_basis),
         ])
         ao = eval_ao(Li₂, [2.5, 0.0, 0.0])
+        @test number_ao(Li₂) == 10
         @test size(ao) == (10,)
         @test ao[1] ≈ 0.00185821 atol = 1e-7
         @test ao[2] ≈ 0.06393277 atol = 1e-7
@@ -85,6 +87,7 @@ using Test
             Atom(8, [0.0, 0.0, 0.0], O_basis)
         ])
         ao = eval_ao(O, [0.1, -0.2, 0.5])
+        @test number_ao(O) == 5
         @test length(ao) == 5
         answer = [0.18049887, 0.39548582, 0.12476461, -0.24952923, 0.62382307]
         @test all(isapprox.(ao, answer, atol=1e-7))
@@ -97,6 +100,7 @@ using Test
             Atom(35, [1.0, 0.0, 0.0], K_basis),
         ])
         ao = eval_ao(K₂, [0.3, 0.2, -0.1])
+        @test number_ao(K₂) == 26
         @test length(ao) == 26
         answer = [
             4.37070090e-02,  1.14466826e+00,  2.05264108e-01,
@@ -119,6 +123,7 @@ using Test
             Atom(35, [1.0, 0.0, 0.0], Br_basis),
         ])
         ao = eval_ao(Br₂, [0.3, 0.2, -0.1])
+        @test number_ao(Br₂) == 36
         @test length(ao) == 36
         answer = [
             5.11158411e-05, 3.98091290e-01, 1.04172136e+00,

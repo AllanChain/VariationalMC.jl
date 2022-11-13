@@ -40,3 +40,13 @@ function eval_ao(molecule::Molecule, x::AbstractVector{T}) where {T<:Number}
     end
     return ao
 end
+
+function number_ao(molecule::Molecule)::Int
+    nao = 0
+    for atom in molecule.atoms
+        for bas in atom.basis
+            nao += 2 * bas.l + 1
+        end
+    end
+    return nao
+end
