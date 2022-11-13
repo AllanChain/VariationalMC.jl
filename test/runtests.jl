@@ -23,7 +23,7 @@ using Test
     @testset "Read Basis Error" begin
         @test_throws "No such file or directory" read_basis("none")
     end
-    @testset "Eval H₂ Atomic Orbitals" begin
+    @testset "Eval H₂ Atomic Orbitals with STO-3G" begin
         basis = read_basis("sto-3g")
         H_basis = basis["H"]
         H₂ = Molecule([
@@ -48,7 +48,7 @@ using Test
         @test ao[1] ≈ 0.49840191 atol = 1e-7
         @test ao[2] ≈ 0.16824640 atol = 1e-7
     end
-    @testset "Eval Li₂ Atomic Orbitals" begin
+    @testset "Eval Li₂ Atomic Orbitals with STO-3G" begin
         basis = read_basis("sto-3g")
         Li_basis = basis["Li"]
         Li₂ = Molecule([
@@ -70,6 +70,67 @@ using Test
             4.61404760e-02, -7.59554400e-02, 2.53184800e-02,
             -1.26592400e-02
         ]
+        @test all(isapprox.(ao, answer, atol=1e-7))
+    end
+    @testset "Eval O Atomic Orbitals with STO-6G" begin
+        basis = read_basis("sto-6g")
+        O_basis = basis["O"]
+        O = Molecule([
+            Atom(8, [0.0, 0.0, 0.0], O_basis)
+        ])
+        ao = eval_ao(O, [0.1, -0.2, 0.5])
+        @test length(ao) == 5
+        answer = [0.18049887, 0.39548582, 0.12476461, -0.24952923, 0.62382307]
+        @test all(isapprox.(ao, answer, atol=1e-7))
+    end
+    @testset "Eval K₂ Atomic Orbitals with STO-6G" begin
+        basis = read_basis("sto-6g")
+        K_basis = basis["K"]
+        K₂ = Molecule([
+            Atom(35, [0.0, 0.0, 0.0], K_basis),
+            Atom(35, [1.0, 0.0, 0.0], K_basis),
+        ])
+        ao = eval_ao(K₂, [0.3, 0.2, -0.1])
+        @test length(ao) == 26
+        answer = [
+            4.37070090e-02,  1.14466826e+00,  2.05264108e-01,
+            4.91655741e-03,  1.58860655e+00,  1.05907103e+00,
+           -5.29535517e-01,  2.85797548e-01,  1.90531699e-01,
+           -9.52658493e-02,  6.85039791e-03,  4.56693194e-03,
+           -2.28346597e-03,  4.94913190e-06,  1.63818632e-01,
+            2.93681270e-01,  2.20972997e-02, -2.71048007e-01,
+            7.74422876e-02, -3.87211438e-02, -4.84602629e-01,
+            1.38457894e-01, -6.92289470e-02, -3.63519779e-02,
+            1.03862794e-02, -5.19313970e-03
+        ]
+        @test all(isapprox.(ao, answer, atol=1e-7))
+    end
+    @testset "Eval Br₂ Atomic Orbitals with STO-6G" begin
+        basis = read_basis("sto-6g")
+        Br_basis = basis["Br"]
+        display(Br_basis)
+        Br₂ = Molecule([
+            Atom(35, [0.0, 0.0, 0.0], Br_basis),
+            Atom(35, [1.0, 0.0, 0.0], Br_basis),
+        ])
+        ao = eval_ao(Br₂, [0.3, 0.2, -0.1])
+        @test length(ao) == 36
+        answer = [
+            5.11158411e-05, 3.98091290e-01, 1.04172136e+00,
+            3.41196527e-02, 5.54897043e-01, 3.69931362e-01,
+            -1.84965681e-01, 1.44971871e+00, 9.66479137e-01,
+            -4.83239568e-01, 4.67417717e-02, 3.11611811e-02,
+            -1.55805906e-02, 1.71050760e+00, -5.70169199e-01,
+            -9.05265187e-01, -8.55253799e-01, 7.12711499e-01,
+            2.26491058e-18, 3.09788226e-03, 3.70520725e-01,
+            1.08572596e-01, -6.04763769e-03, 1.72789648e-03,
+            -8.63948241e-04, -6.10784428e-01, 1.74509836e-01,
+            -8.72549182e-02, -1.79179970e-01, 5.11942770e-02,
+            -2.55971385e-02, -3.77746664e-01, -5.39638091e-02,
+            -3.97239252e-01, 1.88873332e-01, 6.07092853e-01
+        ]
+        println(ao)
+        println(isapprox.(ao, answer, atol=1e-7))
         @test all(isapprox.(ao, answer, atol=1e-7))
     end
 end

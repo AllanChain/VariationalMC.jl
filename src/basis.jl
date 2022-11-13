@@ -7,7 +7,7 @@ end
 const SPDF_CODE = "SPDFGHIKLMNORTU"
 
 function read_basis(basis_name::String)
-    file_name = joinpath(@__DIR__, "../basis", basis_name * ".txt")
+    file_name = joinpath(@__DIR__, "../basis", basis_name * ".dat")
     all_basis = Dict{String,Vector{Basis}}()
     open(file_name) do f
         element = nothing
@@ -65,6 +65,9 @@ function read_basis(basis_name::String)
                     push!(current_basis, [parse(Float64, x) for x in split(line)])
             end
         end
+    end
+    for (atom, _) in all_basis
+        sort!(all_basis[atom], by = bas -> bas.l)
     end
     return all_basis
 end
