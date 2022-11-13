@@ -1,5 +1,3 @@
-include("./basis.jl")
-
 struct Atom
     charge::Number
     coord::Vector{AbstractFloat}
