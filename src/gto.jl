@@ -73,7 +73,7 @@ function eval_ao_laplacian(molecule::Molecule, x::AbstractVector{T}) where {T<:N
                     push!(ao, -6 * d1g_term + 4 * d2g_term * sum(r .^ 2))
                 elseif bas.l == 1
                     for x in r
-                        push!(ao, -8 * x * d1g_term + 4 * sum(r .^ 2) * x * d2g_term)
+                        push!(ao, -10x * d1g_term + 4x * sum(r .^ 2) * d2g_term)
                     end
                 else
                     throw(
