@@ -76,21 +76,21 @@ using Test
             4.11361784e-03, 6.92492517e-02, 1.01581262e-01,
             5.07906310e-02, -2.53953155e-02, 7.73827318e-05,
             4.61404760e-02, -7.59554400e-02, 2.53184800e-02,
-            -1.26592400e-02
+            -1.26592400e-02,
         ]
-        @test all(isapprox.(ao, answer, atol=1e-7))
+        @test all(isapprox.(ao, answer, atol = 1e-7))
     end
     @testset "Eval O Atomic Orbitals with STO-6G" begin
         basis = read_basis("sto-6g")
         O_basis = basis["O"]
         O = Molecule([
-            Atom(8, [0.0, 0.0, 0.0], O_basis)
+            Atom(8, [0.0, 0.0, 0.0], O_basis),
         ])
         ao = eval_ao(O, [0.1, -0.2, 0.5])
         @test number_ao(O) == 5
         @test length(ao) == 5
         answer = [0.18049887, 0.39548582, 0.12476461, -0.24952923, 0.62382307]
-        @test all(isapprox.(ao, answer, atol=1e-7))
+        @test all(isapprox.(ao, answer, atol = 1e-7))
     end
     @testset "Eval K₂ Atomic Orbitals with STO-6G" begin
         basis = read_basis("sto-6g")
@@ -103,17 +103,17 @@ using Test
         @test number_ao(K₂) == 26
         @test length(ao) == 26
         answer = [
-            4.37070090e-02,  1.14466826e+00,  2.05264108e-01,
-            4.91655741e-03,  1.58860655e+00,  1.05907103e+00,
-           -5.29535517e-01,  2.85797548e-01,  1.90531699e-01,
-           -9.52658493e-02,  6.85039791e-03,  4.56693194e-03,
-           -2.28346597e-03,  4.94913190e-06,  1.63818632e-01,
-            2.93681270e-01,  2.20972997e-02, -2.71048007e-01,
+            4.37070090e-02, 1.14466826e+00, 2.05264108e-01,
+            4.91655741e-03, 1.58860655e+00, 1.05907103e+00,
+            -5.29535517e-01, 2.85797548e-01, 1.90531699e-01,
+            -9.52658493e-02, 6.85039791e-03, 4.56693194e-03,
+            -2.28346597e-03, 4.94913190e-06, 1.63818632e-01,
+            2.93681270e-01, 2.20972997e-02, -2.71048007e-01,
             7.74422876e-02, -3.87211438e-02, -4.84602629e-01,
             1.38457894e-01, -6.92289470e-02, -3.63519779e-02,
-            1.03862794e-02, -5.19313970e-03
+            1.03862794e-02, -5.19313970e-03,
         ]
-        @test all(isapprox.(ao, answer, atol=1e-7))
+        @test all(isapprox.(ao, answer, atol = 1e-7))
     end
     @testset "Eval Br₂ Atomic Orbitals with STO-6G" begin
         basis = read_basis("sto-6g")
@@ -137,8 +137,17 @@ using Test
             -8.63948241e-04, -6.10784428e-01, 1.74509836e-01,
             -8.72549182e-02, -1.79179970e-01, 5.11942770e-02,
             -2.55971385e-02, -3.77746664e-01, -5.39638091e-02,
-            -3.97239252e-01, 1.88873332e-01, 6.07092853e-01
+            -3.97239252e-01, 1.88873332e-01, 6.07092853e-01,
         ]
-        @test all(isapprox.(ao, answer, atol=1e-7)) broken=true
+        @test all(isapprox.(ao, answer, atol = 1e-7)) broken = true
+    end
+    @testset "Laplacian of H with STO-3G" begin
+        basis = read_basis("sto-6g")
+        H_basis = basis["H"]
+        H = Molecule([Atom(1, [0.0, 0.0, 0.0], H_basis)], (1, 0))
+        ao_laplacian = eval_ao_laplacian(H, [0.0, 0.0, 0.0])
+        @test length(ao_laplacian) == 1
+        @test ao_laplacian[1] ≈ -28.77712326
+
     end
 end
