@@ -5,71 +5,82 @@ using LinearAlgebra
 using StructArrays
 using Zygote
 
-const Params = Vector{Float64}
-const Electrons = AbstractArray{Float64,1}
-const BatchElectrons = Matrix{Float64}
+const Electrons = AbstractVector{Float64}
+const BatchElectrons = AbstractMatrix{Float64}
 const BatchLogPsi = Matrix{Float64} # Row vector
-
+struct Params
+    mo_coeff_alpha::AbstractMatrix{Float64}
+    mo_coeff_beta::AbstractMatrix{Float64}
+end
 
 function dropdims_by(func::Function, a; dims)
     return dropdims(func(a, dims = dims), dims = dims)
 end
 
-function log_sgn_ψ(params::Params, electrons::Electrons)::Tuple{Float64,Int8}
-    α = params[1]
-    # x = reshape(electrons, 3, :)
-    # r1 = norm(x[1])
-    # r2 = norm(x[2])
-    # r12 = norm(x[1] - x[2])
-    # return -2r1 - 2r2 + r12 / 2 / (1 + α * r12), Int8(1)
-    return -α * norm(electrons), Int8(1)
+function log_sgn_ψ(
+    molecule::Molecule,
+    params::Params,
+    electrons::AbstractVector{T},
+)::Tuple{T,T} where {T<:Number}
+    electrons = reshape(electrons, 3, :)
+    ao_α = eval_ao(molecule, electrons[:, begin:molecule.spins[1]])
+    ao_β = eval_ao(molecule, electrons[:, molecule.spins[1]+1:end])
+    return (params.mo_coeff_alpha * ao_α)[1, 1] * (params.mo_coeff_beta * ao_β)[1, 1], 1
+    # log_ψα, sgn_ψα = logabsdet(params.mo_coeff_alpha * ao_α)
+    # log_ψβ, sgn_ψβ = logabsdet(params.mo_coeff_beta * ao_β)
+    # return log_ψα .* log_ψβ, sgn_ψα .* sgn_ψβ
 end
 
-function batch_log_sgn_ψ(
+function log_sgn_ψ(
+    molecule::Molecule,
     params::Params,
-    batch_electrons::BatchElectrons,
-)::Tuple{BatchLogPsi,Vector{Int8}}
+    batch_electrons::AbstractMatrix{T},
+    )::Tuple{Matrix{T},Vector{T}} where {T<:Number}
     # return broadcast(electrons -> log_sgn_ψ(params, electrons), batch_electrons)
     result = StructArray([
-        log_sgn_ψ(params, electrons) for electrons in eachcol(batch_electrons)
+        log_sgn_ψ(molecule, params, electrons) for electrons in eachcol(batch_electrons)
     ])
     log_ψ, sgn_ψ = StructArrays.components(result)
     return adjoint(log_ψ), sgn_ψ
 end
 
-batch_log_ψ = (params, batch_electrons) -> batch_log_sgn_ψ(params, batch_electrons)[1]
-
-function local_energy(params::Params, electrons::Electrons)::Float64
-    α = params[1]
-    # x = reshape(electrons, 3, :)
-    # r1 = norm(x[1])
-    # r2 = norm(x[2])
-    # r12 = norm(x[1] - x[2])
-    # return -4 + 1 / r12 - 1 / 4 / (1 + α * r12)^4 - 1 / r12 / (1 + α * r12)^3 +
-    #        dot(x[1] / r1 - x[2] / r2, x[1] - x[2]) / r12 / (1 + α * r12)^2
-    r = norm(electrons)
-    return -1 / r - α * (α - 2 / r) / 2
+function log_ψ(molecule::Molecule, params::Params, electrons)
+    return log_sgn_ψ(molecule, params, electrons)[1]
 end
 
-function batch_local_energy(
+function local_energy(molecule::Molecule, params::Params, electrons::Electrons)::Float64
+    return -0.5 * (
+        sum(diaghessian(x -> log_ψ(molecule, params, x), electrons)) +
+        sum(gradient(x -> log_ψ(molecule, params, x), electrons) .^ 2)
+    )
+end
+
+function local_energy(
+    molecule::Molecule,
     params::Params,
     batch_electrons::BatchElectrons,
 )::Vector{Float64}
-    # return broadcast(electrons -> local_energy(params, electrons), batch_electrons)
-    return [local_energy(params, electrons) for electrons in eachcol(batch_electrons)]
+    return [
+        local_energy(molecule, params, electrons) for electrons in eachcol(batch_electrons)
+    ]
 end
 
-function init_walkers(batch_size::Integer, nelectrons::Integer, ndim::Integer = 3)
+function init_walkers(
+    batch_size::Integer,
+    nelectrons::Integer,
+    ndim::Integer = 3,
+)::Matrix{Float64}
     return ones(ndim * nelectrons, batch_size) + randn(ndim * nelectrons, batch_size)
 end
 
 function mcmc_walk(
+    molecule::Molecule,
     params::Params,
     electrons::BatchElectrons,
     width::Float64,
 )::Tuple{BatchElectrons,Float64}
     new_walkers = electrons + randn(size(electrons)) * width
-    p = exp.(2(batch_log_ψ(params, new_walkers) - batch_log_ψ(params, electrons)))
+    p = exp.(2(log_ψ(molecule, params, new_walkers) - log_ψ(molecule, params, electrons)))
     cond = rand(Float64, size(p)) .< p
     # println(resize(cond, size(electrons)))
     new_walkers = ifelse.(cond, new_walkers, electrons)
@@ -82,6 +93,7 @@ end
 
 function batch_mcmc_walk(
     steps::Integer,
+    molecule::Molecule,
     params::Params,
     electrons::BatchElectrons,
     width::Float64;
@@ -90,7 +102,7 @@ function batch_mcmc_walk(
     walkers = electrons
     accum_accept = Vector{Float64}(undef, steps)
     for i = 1:steps
-        walkers, acceptance = mcmc_walk(params, walkers, width)
+        walkers, acceptance = mcmc_walk(molecule, params, walkers, width)
         accum_accept[i] = acceptance
         if adjust
             if acceptance > 0.55
@@ -104,23 +116,29 @@ function batch_mcmc_walk(
 end
 
 
+function init_params(molecule::Molecule)
+    nao = number_ao(molecule)
+    return Params(
+        rand(Float64, (molecule.spins[1], nao)),
+        rand(Float64, (molecule.spins[2], nao)),
+    )
+end
 
-function main(batch_size::Integer)
 
-    params = [0.1]
-    # println(log_psi(params, Array([[0.0] [1.0] [-1.0]])))
-    walkers = init_walkers(batch_size, 1)
-    el = batch_local_energy(params, walkers)
-    ev = Statistics.mean(el)
-
+function vmc(molecule::Molecule, batch_size::Integer)
+    params = init_params(molecule)
+    walkers = init_walkers(batch_size, sum(molecule.spins))
+    # el = local_energy(molecule, params, walkers)
+    # ev = Statistics.mean(el)
     width = 0.1
-    walkers, width, _ = batch_mcmc_walk(5000, params, walkers, width, adjust = true)
+    walkers, width, _ =
+        batch_mcmc_walk(500, molecule, params, walkers, width, adjust = true)
 
     for i = 1:50
-        el = batch_local_energy(params, walkers)
+        el = local_energy(molecule, params, walkers)
         ev = Statistics.mean(el)
         σ²e = var(el)
-        ∂p_logψ = Zygote.forwarddiff(params -> batch_log_ψ(params, walkers), params)
+        ∂p_logψ = Zygote.forwarddiff(params -> log_ψ(molecule, params, walkers), params)
         el = reshape(el, (1, batch_size))
         ∂p_E =
             2(
@@ -129,7 +147,7 @@ function main(batch_size::Integer)
             )
         println("Loop $i; Energy $ev; Variance $σ²e; Params $params")
         params = params .- ∂p_E
-        walkers, width, acceptance = batch_mcmc_walk(100, params, walkers, width)
+        walkers, width, acceptance = batch_mcmc_walk(100, molecule, params, walkers, width)
         mean_acceptance = mean(acceptance)
         if mean_acceptance > 0.55
             width *= 1.1
@@ -143,4 +161,12 @@ end
 # println(Zygote.forwarddiff(params -> log_psi(params, walkers), params))
 # println(mcmc_walk(params, walkers, 0.1))
 
-main(1024)
+# main(1024)
+function main()
+    basis = read_basis("sto-3g")
+    H_basis = basis["H"]
+    H₂ = Molecule([Atom(1, [0.0, 0.0, 0.0], H_basis), Atom(1, [1.4, 0.0, 0.0], H_basis)])
+    vmc(H₂, 256)
+end
+
+main()

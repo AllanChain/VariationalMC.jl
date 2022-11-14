@@ -8,4 +8,5 @@ include("gto.jl")
 end
 
 using .molecule
+include("main.jl")
 end
