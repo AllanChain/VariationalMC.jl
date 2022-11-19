@@ -24,7 +24,7 @@ using Test
         @test_throws "No such file or directory" read_basis("none")
     end
     @testset "Check STO-3G Basis Normalized" begin
-        basis = read_basis("sto-3g", normalize=false)
+        basis = read_basis("sto-3g", normalize = false)
         H_basis = basis["H"]
         @test check_basis_normalized(H_basis[1])
         for bas in basis["Li"]
@@ -35,12 +35,12 @@ using Test
         end
     end
     @testset "cc-pVDZ basis is not normalized" begin
-        basis = read_basis("cc-pvdz", normalize=false)
+        basis = read_basis("cc-pvdz", normalize = false)
         H_basis = basis["H"]
         @test !check_basis_normalized(H_basis[1])
     end
     @testset "cc-pVDZ basis can be normalized" begin
-        basis = read_basis("cc-pvdz", normalize=false)
+        basis = read_basis("cc-pvdz", normalize = false)
         H_basis = basis["H"]
         normalize_basis!(H_basis)
         @test check_basis_normalized(H_basis[1])
@@ -137,6 +137,20 @@ using Test
         ]
         @test all(isapprox.(ao, answer, atol = 1e-7))
     end
+    @testset "Eval Sc atomic orbitals with STO-3G" begin
+        basis = read_basis("sto-3g")
+        Sc = Molecule([Atom(21, [0.0, 0.0, 0.0], basis["Sc"])], (1, 0))
+        ao = eval_ao(Sc, [0.1, 0.2, -0.1])
+        answer = [
+            3.48405195e-01, 2.09124605e+00, 2.00827116e-01,
+            6.12552449e-05, 1.44335049e+00, 2.88670098e+00,
+            -1.44335049e+00, 1.54038700e-01, 3.08077400e-01,
+            -1.54038700e-01, 8.15032643e-03, 1.63006529e-02,
+            -8.15032643e-03, 6.05324023e-03, -6.05324023e-03,
+            -2.62112991e-03, -3.02662011e-03, -4.53993017e-03,
+        ]
+        @test all(isapprox.(ao, answer, atol = 1e-7))
+    end
     @testset "Eval Br₂ Atomic Orbitals with STO-6G" begin
         basis = read_basis("sto-6g")
         Br_basis = basis["Br"]
@@ -172,7 +186,7 @@ using Test
         answer = [0.62897326, 0.14604979, 0.09160394, 0.18320789, -0.09160394]
         @test all(isapprox.(ao, answer, atol = 1e-7))
     end
-    @testset "Eval atomic orbitals of H with cc-pVDZ" begin
+    @testset "Eval atomic orbitals of Li with cc-pVDZ" begin
         basis = read_basis("cc-pvdz")
         Li_basis = basis["Li"]
         Li = Molecule([Atom(3, [0.0, 0.0, 0.0], Li_basis)], (1, 0))
