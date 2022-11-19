@@ -23,6 +23,28 @@ using Test
     @testset "Read Basis Error" begin
         @test_throws "No such file or directory" read_basis("none")
     end
+    @testset "Check STO-3G Basis Normalized" begin
+        basis = read_basis("sto-3g", normalize=false)
+        H_basis = basis["H"]
+        @test check_basis_normalized(H_basis[1])
+        for bas in basis["Li"]
+            @test check_basis_normalized(bas)
+        end
+        for bas in basis["S"]
+            @test check_basis_normalized(bas)
+        end
+    end
+    @testset "cc-pVDZ basis is not normalized" begin
+        basis = read_basis("cc-pvdz", normalize=false)
+        H_basis = basis["H"]
+        @test !check_basis_normalized(H_basis[1])
+    end
+    @testset "cc-pVDZ basis can be normalized" begin
+        basis = read_basis("cc-pvdz", normalize=false)
+        H_basis = basis["H"]
+        normalize_basis!(H_basis)
+        @test check_basis_normalized(H_basis[1])
+    end
     @testset "Eval H₂ Atomic Orbitals with STO-3G" begin
         basis = read_basis("sto-3g")
         H_basis = basis["H"]
@@ -139,9 +161,32 @@ using Test
             -2.55971385e-02, -3.77746664e-01, -5.39638091e-02,
             -3.97239252e-01, 1.88873332e-01, 6.07092853e-01,
         ]
+        println(isapprox.(ao, answer, atol = 1e-7))
         @test all(isapprox.(ao, answer, atol = 1e-7)) broken = true
     end
-    @testset "Laplacian of H with STO-3G" begin
+    @testset "Eval atomic orbitals of H with cc-pVDZ" begin
+        basis = read_basis("cc-pvdz")
+        H_basis = basis["H"]
+        H = Molecule([Atom(1, [0.0, 0.0, 0.0], H_basis)], (1, 0))
+        ao = eval_ao(H, [0.1, 0.2, -0.1])
+        answer = [0.62897326, 0.14604979, 0.09160394, 0.18320789, -0.09160394]
+        @test all(isapprox.(ao, answer, atol = 1e-7))
+    end
+    @testset "Eval atomic orbitals of H with cc-pVDZ" begin
+        basis = read_basis("cc-pvdz")
+        Li_basis = basis["Li"]
+        Li = Molecule([Atom(3, [0.0, 0.0, 0.0], Li_basis)], (1, 0))
+        ao = eval_ao(Li, [0.1, 0.2, -0.1])
+        answer = [1.27919477e+00, -4.06104439e-01, 4.87673126e-02,
+            1.94528168e-02, 3.89056336e-02, -1.94528168e-02,
+            1.34665434e-03, 2.69330868e-03, -1.34665434e-03,
+            1.46435482e-03, -1.46435482e-03, -6.34084236e-04,
+            -7.32177409e-04, -1.09826611e-03]
+        println(isapprox.(ao, answer, atol = 1e-7))
+        println(ao - answer)
+        @test all(isapprox.(ao, answer, atol = 1e-7)) broken = true
+    end
+    @testset "Laplacian of H with STO-6G" begin
         basis = read_basis("sto-6g")
         H_basis = basis["H"]
         H = Molecule([Atom(1, [0.0, 0.0, 0.0], H_basis)], (1, 0))

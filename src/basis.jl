@@ -1,14 +1,19 @@
-struct Basis
+export Basis, read_basis, basis_norm_factor, check_basis_normalized,
+    normalize_basis!
+
+mutable struct Basis
     l::Int
     exp::Array{Float64}
     coeff::Matrix{Float64}
 end
 
+const BasisDict = Dict{String,Vector{Basis}}
+
 const SPDF_CODE = "SPDFGHIKLMNORTU"
 
-function read_basis(basis_name::String)
+function read_basis(basis_name::String; normalize=true)
     file_name = joinpath(@__DIR__, "../basis", basis_name * ".dat")
-    all_basis = Dict{String,Vector{Basis}}()
+    all_basis = BasisDict()
     open(file_name) do f
         element = nothing
         orbital_code = nothing
@@ -69,5 +74,51 @@ function read_basis(basis_name::String)
     for (atom, _) in all_basis
         sort!(all_basis[atom], by = bas -> bas.l)
     end
+    if normalize
+        normalize_basis!(all_basis)
+    end
     return all_basis
+end
+
+
+function basis_norm_factor(basis::Basis)
+    num_gaussain = length(basis.exp)
+    normalization_factor = []
+    for coeff in eachcol(basis.coeff)
+        s = 0
+        for i = 1:num_gaussain
+            for j = 1:i-1
+                x = basis.exp[i] / basis.exp[j]
+                c = coeff[i] * coeff[j]
+                s += 2c * (4 / (x + 1 / x + 2))^((3 + 2 * basis.l) / 4)
+            end
+            s += coeff[i]^2
+        end
+        push!(normalization_factor, 1 / sqrt(s))
+    end
+    return normalization_factor
+end
+
+function check_basis_normalized(basis::Basis)::Bool
+    return all(isapprox.(basis_norm_factor(basis), 1))
+end
+
+function normalize_basis!(basis::Basis)
+    normalization_factor = basis_norm_factor(basis)
+    if all(isapprox.(normalization_factor, 1))
+        return # Already normalized
+    end
+    basis.coeff .*= transpose(repeat(normalization_factor, 1, length(basis.exp)))
+end
+
+function normalize_basis!(bases::AbstractVector{Basis})
+    for basis in bases
+        normalize_basis!(basis)
+    end
+end
+
+function normalize_basis!(basis_dict::BasisDict)
+    for bases in values(basis_dict)
+        normalize_basis!(bases)
+    end
 end
