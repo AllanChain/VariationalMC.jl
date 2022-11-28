@@ -178,6 +178,25 @@ using Test
         println(isapprox.(ao, answer, atol = 1e-7))
         @test all(isapprox.(ao, answer, atol = 1e-7)) broken = true
     end
+    @testset "Eval atomic orbitals of H with 6-31G" begin
+        basis = read_basis("6-31g")
+        H_basis = basis["H"]
+        H = Molecule([Atom(1, [0.0, 0.0, 0.0], H_basis)], (1, 0))
+        ao = eval_ao(H, [0.1, 0.2, -0.1])
+        answer = [0.77699339, 0.17963399]
+        @test all(isapprox.(ao, answer, atol = 1e-7))
+    end
+    @testset "Eval atomic orbitals of Li with 6-31G" begin
+        basis = read_basis("6-31g")
+        Li_basis = basis["Li"]
+        Li = Molecule([Atom(3, [0.0, 0.0, 0.0], Li_basis)], (1, 0))
+        ao = eval_ao(Li, [0.1, 0.2, -0.1])
+        answer = [
+            1.28320882, -0.01938129, 0.05872944, 0.0197182, 0.0394364,
+            -0.0197182, 0.00222745, 0.0044549, -0.00222745,
+        ]
+        @test all(isapprox.(ao, answer, atol = 1e-7))
+    end
     @testset "Eval atomic orbitals of H with cc-pVDZ" begin
         basis = read_basis("cc-pvdz")
         H_basis = basis["H"]
