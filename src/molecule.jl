@@ -1,3 +1,5 @@
+export Atom, Molecule
+
 struct Atom
     charge::Number
     coord::Vector{AbstractFloat}

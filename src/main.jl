@@ -76,7 +76,7 @@ function signed_minor(A)
     m, n = size(A)
     for i = 1:m
         for j = 1:n
-            B[i, j] = (-1)^(i + j)det(A[setdiff(1:end, i), setdiff(1:end, j)])
+            B[i, j] = (-1)^(i + j) * det(A[setdiff(1:end, i), setdiff(1:end, j)])
         end
     end
     return B
@@ -229,35 +229,21 @@ function init_params(molecule::Molecule)
 end
 
 
-function vmc(molecule::Molecule, batch_size::Integer)
+function vmc(molecule::Molecule, batch_size::Integer; steps::Int)
     params = init_params(molecule)
     walkers = init_walkers(batch_size, sum(molecule.spins))
-    # el = local_energy(molecule, params, walkers)
-    # ev = Statistics.mean(el)
     width = 0.1
     walkers, width, _ =
         batch_mcmc_walk(500, molecule, params, walkers, width, adjust = true)
 
-    for i = 1:50
+    for i = 1:steps
         el = local_energy(molecule, params, walkers)
         ev = mean(el)
         σ²e = var(el)
-        # ∂p_logψ = hcat(
-        #     [
-        #         gradient(params -> log_ψ(molecule, params, walker), params)
-        #         for walker in eachcol(walkers)
-        #     ]...)
         ∂p_logψ = log_ψ_deriv_params(molecule, params, walkers)
-        # ∂p_logψ = reshape(∂p_logψ, :)
-        # el = reshape(el, (1, batch_size))
         ∂p_E = 2(mean(el .* ∂p_logψ) - ev * mean(∂p_logψ))
         println("Loop $i; Energy $ev; Variance $σ²e; Params $params")
-        params -= ∂p_E / 10
-        # params.mo_coeff_alpha -=
-        #     reshape(∂p_E[begin:length(params.mo_coeff_alpha)], size(params.mo_coeff_alpha))
-        # params.mo_coeff_beta -=
-        #     reshape(∂p_E[begin:length(params.mo_coeff_beta)], size(params.mo_coeff_beta))
-        # params = params .- ∂p_E
+        params -= ∂p_E
         walkers, width, acceptance = batch_mcmc_walk(100, molecule, params, walkers, width)
         mean_acceptance = mean(acceptance)
         if mean_acceptance > 0.55
@@ -268,19 +254,11 @@ function vmc(molecule::Molecule, batch_size::Integer)
     end
 end
 
-function print_ao(
-    molecule::Molecule,
-    electrons::AbstractVector{T},
-) where {T<:Number}
-    electrons = reshape(electrons, 3, :)
-    ao = eval_ao(molecule, electrons)
-    println(ao)
-end
 function main()
-    basis = read_basis("sto-3g")
+    basis = read_basis("6-31g")
     H_basis = basis["H"]
     H₂ = Molecule([Atom(1, [0.0, 0.0, 0.0], H_basis), Atom(1, [1.4, 0.0, 0.0], H_basis)])
-    vmc(H₂, 256)
+    vmc(H₂, 256, steps = 20)
 end
 
-# main()
+main()
