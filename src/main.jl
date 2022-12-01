@@ -7,13 +7,12 @@ using Distances
 
 const Electrons = AbstractVector{Float64}
 const BatchElectrons = AbstractMatrix{Float64}
-const BatchLogPsi = Matrix{Float64} # Row vector
 mutable struct Params
     mo_coeff_alpha::AbstractMatrix{Float64}
     mo_coeff_beta::AbstractMatrix{Float64}
 end
 
-export main
+export main, Params, log_ψ, log_sgn_ψ, log_ψ_deriv_params, init_params
 
 function Base.:-(p1::Params, p2::Params)
     return Params(
@@ -32,12 +31,6 @@ function Base.:*(x::T, p2::Params) where {T<:Number}
 end
 function Base.:/(params::Params, x::T) where {T<:Number}
     return Params(params.mo_coeff_alpha / x, params.mo_coeff_beta / x)
-end
-
-# function flatten_params(params::Params)
-
-function dropdims_by(func::Function, a; dims)
-    return dropdims(func(a, dims = dims), dims = dims)
 end
 
 function log_sgn_ψ(
@@ -261,4 +254,4 @@ function main()
     vmc(H₂, 256, steps = 20)
 end
 
-main()
+# main()
