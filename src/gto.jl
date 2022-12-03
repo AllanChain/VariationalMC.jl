@@ -1,5 +1,7 @@
 using LinearAlgebra
 
+export eval_ao, eval_ao_deriv, eval_ao_laplacian, number_ao
+
 function double_factorial(n::Int)
     if n < 2
         return 1
@@ -89,6 +91,40 @@ end
 function sum_gaussian_deriv_n(n, l, c, a, r²)
     return exp2(l) * (2 / π)^(3 / 4) *
            sum(c .* a .^ (n + (2l + 3) / 4) .* exp.(-a .* r²))
+end
+
+function eval_ao_deriv(molecule::Molecule, x::AbstractMatrix{T}) where {T<:Number}
+    return hcat([eval_ao_deriv(molecule, x1) for x1 in eachcol(x)]...)
+end
+
+function eval_ao_deriv(molecule::Molecule, x::AbstractVector{T}) where {T<:Number}
+    ao = Vector{Vector{Number}}()
+    for atom in molecule.atoms
+        r = x - atom.coord
+        r² = norm(r)^2
+        for bas in atom.basis
+            for coeff in eachcol(bas.coeff)
+                d1g_term = sum_gaussian_deriv_n(1, bas.l, coeff, bas.exp, r²)
+                if bas.l == 0
+                    push!(ao, -2r .* d1g_term)
+                elseif bas.l == 1
+                    g_term = sum_gaussian(bas.l, coeff, bas.exp, r²)
+                    for (i, x) in enumerate(r)
+                        result = -2x .* r .* d1g_term
+                        result[i] += g_term
+                        push!(ao, result)
+                    end
+                else
+                    throw(
+                        ErrorException(
+                            "Orbitals with angular momentum $(bas.l) is not supported",
+                        ),
+                    )
+                end
+            end
+        end
+    end
+    return hcat(ao...)
 end
 
 function eval_ao_laplacian(molecule::Molecule, x::AbstractMatrix{T}) where {T<:Number}

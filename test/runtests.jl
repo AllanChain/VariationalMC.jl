@@ -5,6 +5,7 @@ using SafeTestsets
 end
 @safetestset "Atomic Orbitals" begin
     include("./ao.jl")
+    include("./ao_deriv.jl")
     include("./ao_laplacian.jl")
 end
 @safetestset "QMC" begin
