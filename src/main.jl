@@ -4,7 +4,6 @@ using Statistics
 using LinearAlgebra
 using StructArrays
 using Distances
-using Zygote
 
 const Electrons = AbstractVector{Float64}
 const BatchElectrons = AbstractMatrix{Float64}
