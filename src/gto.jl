@@ -19,7 +19,7 @@ The basic form we want to calculate is
 
 where the normalized gaussian function looks like
 ```math
-(2a/π)^{3/4} (4a)^{(l+m+n)/2
+(2a/π)^{3/4} (4a)^{(l+m+n)/2} exp(-a r^2)
 ```
 Note the denominator
 ```math

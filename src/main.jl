@@ -4,38 +4,40 @@ using Statistics
 using LinearAlgebra
 using StructArrays
 using Distances
+using Zygote
 
 const Electrons = AbstractVector{Float64}
 const BatchElectrons = AbstractMatrix{Float64}
-mutable struct Params
+mutable struct QMCParams
     mo_coeff_alpha::AbstractMatrix{Float64}
     mo_coeff_beta::AbstractMatrix{Float64}
 end
 
-export main, Params, log_ψ, log_sgn_ψ, log_ψ_deriv_params, init_params
+export main, QMCParams, log_ψ, log_sgn_ψ, log_ψ_deriv_params, init_params, vmc,
+    local_energy, local_kinetic_energy, local_potential_energy
 
-function Base.:-(p1::Params, p2::Params)
-    return Params(
+function Base.:-(p1::QMCParams, p2::QMCParams)
+    return QMCParams(
         p1.mo_coeff_alpha - p2.mo_coeff_alpha,
         p1.mo_coeff_beta - p2.mo_coeff_beta,
     )
 end
-function Base.:+(p1::Params, p2::Params)
-    return Params(
+function Base.:+(p1::QMCParams, p2::QMCParams)
+    return QMCParams(
         p1.mo_coeff_alpha + p2.mo_coeff_alpha,
         p1.mo_coeff_beta + p2.mo_coeff_beta,
     )
 end
-function Base.:*(x::T, p2::Params) where {T<:Number}
-    return Params(x * p2.mo_coeff_alpha, x * p2.mo_coeff_beta)
+function Base.:*(x::T, p2::QMCParams) where {T<:Number}
+    return QMCParams(x * p2.mo_coeff_alpha, x * p2.mo_coeff_beta)
 end
-function Base.:/(params::Params, x::T) where {T<:Number}
-    return Params(params.mo_coeff_alpha / x, params.mo_coeff_beta / x)
+function Base.:/(params::QMCParams, x::T) where {T<:Number}
+    return QMCParams(params.mo_coeff_alpha / x, params.mo_coeff_beta / x)
 end
 
 function log_sgn_ψ(
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     electrons::AbstractVector{T},
 )::Tuple{T,T} where {T<:Number}
     electrons = reshape(electrons, 3, :)
@@ -44,12 +46,12 @@ function log_sgn_ψ(
     ao_β = ao[:, molecule.spins[1]+1:end]
     log_ψα, sgn_ψα = logabsdet(params.mo_coeff_alpha * ao_α)
     log_ψβ, sgn_ψβ = logabsdet(params.mo_coeff_beta * ao_β)
-    return log_ψα .+ log_ψβ, sgn_ψα .* sgn_ψβ
+    return log_ψα .+ log_ψβ, sgn_ψα .* sgn_ψβ # TODO: fix sign
 end
 
 function log_sgn_ψ(
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     batch_electrons::AbstractMatrix{T},
 )::Tuple{Matrix{T},Vector{T}} where {T<:Number}
     # return broadcast(electrons -> log_sgn_ψ(params, electrons), batch_electrons)
@@ -60,7 +62,7 @@ function log_sgn_ψ(
     return adjoint(log_ψ), sgn_ψ
 end
 
-function log_ψ(molecule::Molecule, params::Params, electrons)
+function log_ψ(molecule::Molecule, params::QMCParams, electrons)
     return log_sgn_ψ(molecule, params, electrons)[1]
 end
 
@@ -75,21 +77,19 @@ function signed_minor(A)
     return B
 end
 
-function log_ψ_deriv_params(molecule::Molecule, params::Params, electrons::Electrons)
+function log_ψ_deriv_params(molecule::Molecule, params::QMCParams, electrons::Electrons)
     electrons = reshape(electrons, 3, :)
     ao = eval_ao(molecule, electrons)
     ao_α = ao[:, begin:molecule.spins[1]]
     ao_β = ao[:, molecule.spins[1]+1:end]
     A_α = params.mo_coeff_alpha * ao_α
-    A_β = params.mo_coeff_alpha * ao_β
-    return Params(
-        signed_minor(A_α) * transpose(ao_α) / det(A_α),
-        signed_minor(A_β) * transpose(ao_β) / det(A_β),
-    )
+    A_β = params.mo_coeff_beta * ao_β
+    return QMCParams(transpose(ao_α / A_α), transpose(ao_β / A_β))
 end
+
 function log_ψ_deriv_params(
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     batch_electrons::BatchElectrons,
 )
     return [
@@ -119,7 +119,7 @@ end
 
 function local_kinetic_energy(
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     batch_electrons::AbstractMatrix{T},
 )::Vector{T} where {T<:Number}
     return [
@@ -138,7 +138,7 @@ function local_potential_energy(
     r_ae = pairwise(Euclidean(), atoms, electrons, dims = 2)
     r_ee = pairwise(Euclidean(), electrons, dims = 2)
     potential_energy = -sum(charges ./ r_ae) + sum(triu(1 ./ r_ee, 1))
-    if length(atoms) > 0
+    if length(molecule.atoms) > 1
         r_aa = pairwise(Euclidean(), atoms, dims = 2)
         potential_energy += sum(triu(charges .* reshape(charges, 1, :) / r_aa, 1))
     end
@@ -155,7 +155,7 @@ function local_potential_energy(
     ]
 end
 
-function local_energy(molecule::Molecule, params::Params, electrons)
+function local_energy(molecule::Molecule, params::QMCParams, electrons)
     return (
         local_kinetic_energy(molecule, params, electrons) +
         local_potential_energy(molecule, electrons)
@@ -172,7 +172,7 @@ end
 
 function mcmc_walk(
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     electrons::BatchElectrons,
     width::Float64,
 )::Tuple{BatchElectrons,Float64}
@@ -191,7 +191,7 @@ end
 function batch_mcmc_walk(
     steps::Integer,
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     electrons::BatchElectrons,
     width::Float64;
     adjust::Bool = false,
@@ -215,19 +215,19 @@ end
 
 function init_params(molecule::Molecule)
     nao = number_ao(molecule)
-    return Params(
+    return QMCParams(
         rand(Float64, (molecule.spins[1], nao)),
         rand(Float64, (molecule.spins[2], nao)),
     )
 end
 
 
-function vmc(molecule::Molecule, batch_size::Integer; steps::Int)
+function vmc(molecule::Molecule, batch_size::Integer; steps::Int = 20, burnin::Int = 20)
     params = init_params(molecule)
     walkers = init_walkers(batch_size, sum(molecule.spins))
     width = 0.1
     walkers, width, _ =
-        batch_mcmc_walk(500, molecule, params, walkers, width, adjust = true)
+        batch_mcmc_walk(burnin, molecule, params, walkers, width, adjust = true)
 
     for i = 1:steps
         el = local_energy(molecule, params, walkers)
@@ -245,6 +245,8 @@ function vmc(molecule::Molecule, batch_size::Integer; steps::Int)
             width *= 0.9
         end
     end
+
+    return params, walkers
 end
 
 function main()
