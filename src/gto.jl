@@ -94,7 +94,7 @@ function sum_gaussian_deriv_n(n, l, c, a, r²)
 end
 
 function eval_ao_deriv(molecule::Molecule, x::AbstractMatrix{T}) where {T<:Number}
-    return hcat([eval_ao_deriv(molecule, x1) for x1 in eachcol(x)]...)
+    return cat([eval_ao_deriv(molecule, x1) for x1 in eachcol(x)]..., dims = 3)
 end
 
 function eval_ao_deriv(molecule::Molecule, x::AbstractVector{T}) where {T<:Number}

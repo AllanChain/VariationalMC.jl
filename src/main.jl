@@ -35,15 +35,24 @@ function Base.:/(params::QMCParams, x::T) where {T<:Number}
     return QMCParams(params.mo_coeff_alpha / x, params.mo_coeff_beta / x)
 end
 
+function by_αβ(func::Function, molecule::Molecule, electrons)
+    result = func(molecule, electrons)
+    if ndims(result) == 2
+        return result[:, begin:molecule.spins[1]], result[:, molecule.spins[1]+1:end]
+    elseif ndims(result) == 3
+        return result[:, :, begin:molecule.spins[1]], result[:, :, molecule.spins[1]+1:end]
+    else
+        throw(ErrorException("Result returns unexcepted dims $(ndims(result))"))
+    end
+end
+
 function log_sgn_ψ(
     molecule::Molecule,
     params::QMCParams,
     electrons::AbstractVector{T},
 )::Tuple{T,T} where {T<:Number}
     electrons = reshape(electrons, 3, :)
-    ao = eval_ao(molecule, electrons)
-    ao_α = ao[:, begin:molecule.spins[1]]
-    ao_β = ao[:, molecule.spins[1]+1:end]
+    ao_α, ao_β = by_αβ(eval_ao, molecule, electrons)
     log_ψα, sgn_ψα = logabsdet(params.mo_coeff_alpha * ao_α)
     log_ψβ, sgn_ψβ = logabsdet(params.mo_coeff_beta * ao_β)
     return log_ψα .+ log_ψβ, sgn_ψα .* sgn_ψβ # TODO: fix sign
@@ -79,9 +88,7 @@ end
 
 function log_ψ_deriv_params(molecule::Molecule, params::QMCParams, electrons::Electrons)
     electrons = reshape(electrons, 3, :)
-    ao = eval_ao(molecule, electrons)
-    ao_α = ao[:, begin:molecule.spins[1]]
-    ao_β = ao[:, molecule.spins[1]+1:end]
+    ao_α, ao_β = by_αβ(eval_ao, molecule, electrons)
     A_α = params.mo_coeff_alpha * ao_α
     A_β = params.mo_coeff_beta * ao_β
     return QMCParams(transpose(ao_α / A_α), transpose(ao_β / A_β))
@@ -98,22 +105,29 @@ function log_ψ_deriv_params(
     ]
 end
 
+function eval_ao_deriv_sum(molecule::Molecule, electrons)
+    return dropdims(sum(eval_ao_deriv(molecule, electrons), dims = 1), dims = 1)
+end
+
 # ∇²(D↑⋅D↓)/(D↑⋅D↓) = (∇²D↑)/(D↑) + (∇²D↓)/(D↓)
 function local_kinetic_energy(
     molecule::Molecule,
-    params::Params,
+    params::QMCParams,
     electrons::AbstractVector{T},
 )::T where {T<:Number}
     electrons = reshape(electrons, 3, :)
-    ∇²ao = eval_ao_laplacian(molecule, electrons)
-    ∇²ao_α = ∇²ao[:, begin:molecule.spins[1]]
-    ∇²ao_β = ∇²ao[:, molecule.spins[1]+1:end]
-    ao = eval_ao(molecule, electrons)
-    ao_α = ao[:, begin:molecule.spins[1]]
-    ao_β = ao[:, molecule.spins[1]+1:end]
+    ∇²ao_α, ∇²ao_β = by_αβ(eval_ao_laplacian, molecule, electrons)
+    sum_∇ao_α, sum_∇ao_β = by_αβ(eval_ao_deriv_sum, molecule, electrons)
+    ao_α, ao_β = by_αβ(eval_ao, molecule, electrons)
+    A_α = params.mo_coeff_alpha * ao_α
+    A_β = params.mo_coeff_beta * ao_β
+    inv_A_α_mo = A_α \ params.mo_coeff_alpha
+    inv_A_β_mo = A_β \ params.mo_coeff_beta
     return -1 / 2 * (
-        det(params.mo_coeff_alpha * ∇²ao_α) / det(params.mo_coeff_alpha * ao_α) +
-        det(params.mo_coeff_beta * ∇²ao_β) / det(params.mo_coeff_beta * ao_β)
+        tr(inv_A_α_mo * ∇²ao_α) + tr(inv_A_α_mo * sum_∇ao_α)^2 -
+        tr((inv_A_α_mo * sum_∇ao_α)^2) +
+        tr(inv_A_β_mo * ∇²ao_β) + tr(inv_A_β_mo * sum_∇ao_β)^2 -
+        tr((inv_A_β_mo * sum_∇ao_β)^2)
     )
 end
 
