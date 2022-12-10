@@ -3,7 +3,7 @@ export Basis, read_basis, basis_norm_factor, check_basis_normalized,
 
 mutable struct Basis
     l::Int
-    exp::Array{Float64}
+    exp::Vector{Float64}
     coeff::Matrix{Float64}
 end
 

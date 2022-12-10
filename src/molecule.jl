@@ -2,7 +2,7 @@ export Atom, Molecule
 
 struct Atom
     charge::Number
-    coord::Vector{AbstractFloat}
+    coord::Vector{Float64}
     basis::Vector{Basis}
 end
 
