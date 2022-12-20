@@ -11,3 +11,6 @@ end
 @safetestset "QMC" begin
     include("./qmc.jl")
 end
+@safetestset "Config" begin
+    include("config.jl")
+end

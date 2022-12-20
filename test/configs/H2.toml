@@ -1,5 +1,6 @@
-[systems]
-basis = "sto-3g"
+[system]
+basis = "6-31g"
+spins = [1, 1]
 
 [[system.atoms]]
 name = "H"

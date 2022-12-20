@@ -6,3 +6,5 @@ batch_size = 32
 burn_in_steps = 100
 steps = 100
 
+[system]
+basis = "sto-3g"
