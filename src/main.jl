@@ -146,7 +146,7 @@ function local_potential_energy(
     electrons::AbstractVector{T},
 )::T where {T<:Number}
     atoms = hcat([atom.coord for atom in molecule.atoms]...)
-    charges = hcat([atom.charge for atom in molecule.atoms]...)
+    charges = [atom.charge for atom in molecule.atoms]
     electrons = reshape(electrons, 3, :)
     r_ae = pairwise(Euclidean(), atoms, electrons, dims = 2)
     r_ee = pairwise(Euclidean(), electrons, dims = 2)
@@ -235,22 +235,23 @@ function init_params(molecule::Molecule)
 end
 
 
-function vmc(molecule::Molecule, batch_size::Integer; steps::Int = 20, burnin::Int = 20)
+function vmc(config::Config)
+    molecule = build_molecule(config)
     params = init_params(molecule)
-    walkers = init_walkers(batch_size, sum(molecule.spins))
+    walkers = init_walkers(config.qmc.batch_size, sum(molecule.spins))
     width = 0.1
     walkers, width, _ =
-        batch_mcmc_walk(burnin, molecule, params, walkers, width, adjust = true)
+        batch_mcmc_walk(config.mcmc.burn_in_steps, molecule, params, walkers, width, adjust = true)
 
-    for i = 1:steps
+    for i = 1:config.qmc.iterations
         el = local_energy(molecule, params, walkers)
         ev = mean(el)
         σ²e = var(el)
         ∂p_logψ = log_ψ_deriv_params(molecule, params, walkers)
         ∂p_E = 2(mean(el .* ∂p_logψ) - ev * mean(∂p_logψ))
-        println("Loop $i; Energy $ev; Variance $σ²e; Params $params")
+        println("Loop $i; Energy $ev; Variance $σ²e")
         params -= ∂p_E
-        walkers, width, acceptance = batch_mcmc_walk(100, molecule, params, walkers, width)
+        walkers, width, acceptance = batch_mcmc_walk(config.mcmc.steps, molecule, params, walkers, width)
         mean_acceptance = mean(acceptance)
         if mean_acceptance > 0.55
             width *= 1.1
@@ -260,6 +261,13 @@ function vmc(molecule::Molecule, batch_size::Integer; steps::Int = 20, burnin::I
     end
 
     return params, walkers
+end
+
+function vmc(config_file::String)
+    if !isabspath(config_file)
+        config_file = joinpath(@__DIR__, "../test/configs", config_file)
+    end
+    return vmc(load_config(config_file))
 end
 
 function main()

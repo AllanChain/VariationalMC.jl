@@ -1,0 +1,11 @@
+[system]
+basis = "6-31g"
+spins = [7, 7]
+
+[[system.atoms]]
+name = "N"
+coord = [0.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "N"
+coord = [2, 0.0, 0.0]
