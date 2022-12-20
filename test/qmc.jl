@@ -1,6 +1,7 @@
 using QMC
 using QMC.molecule
 using LinearAlgebra
+using Random
 using Test
 
 
@@ -11,7 +12,7 @@ using Test
         Atom(1, [0.0, 0.0, 0.0], H_basis),
         Atom(1, [1.4, 0.0, 0.0], H_basis),
     ])
-    walker = randn(6)
+    walker = randn(MersenneTwister(1), 6)
     @testset "H₂ deriv params" begin
         params = init_params(molecule)
         f = log_ψ(molecule, params, walker)
