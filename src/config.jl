@@ -1,24 +1,44 @@
-import TOML
+using Configurations
 
-export load_config, build_molecule
+export load_config, build_molecule, Config
 
-recursive_merge(x::AbstractDict...) = merge(recursive_merge, x...)
-recursive_merge(x::AbstractVector...) = cat(x...; dims = 1)
-recursive_merge(x...) = x[end]
-
-function load_config(config_file::String)
-    base_config = TOML.parsefile(joinpath(@__DIR__, "default_config.toml"))
-    user_config = TOML.parsefile(config_file)
-    return recursive_merge(base_config, user_config)
+@option struct AtomConfig
+    name::String
+    coord::Vector{Float64}
 end
 
-function build_molecule(config::Dict)
-    system_cfg = config["system"]
-    basis = read_basis(system_cfg["basis"])
-    atoms = Vector{Atom}(undef, length(system_cfg["atoms"]))
-    for (i, atom_cfg) in enumerate(system_cfg["atoms"])
-        atoms[i] = Atom(atom_cfg["name"], atom_cfg["coord"], basis[atom_cfg["name"]])
+@option struct SystemConfig
+    basis::String
+    atoms::Vector{AtomConfig}
+    spins::Vector{Int}
+end
+
+@option struct QMCConfig
+    iterations::Int
+    batch_size::Int
+end
+
+@option struct MCMCConfig
+    burn_in_steps::Int
+    steps::Int
+end
+
+@option struct Config
+    qmc::QMCConfig = QMCConfig(; iterations = 50, batch_size = 32)
+    mcmc::MCMCConfig = MCMCConfig(; burn_in_steps = 100, steps = 100)
+    system::SystemConfig
+end
+
+function load_config(config_file::String)::Config
+    return from_toml(Config, config_file)
+end
+
+function build_molecule(config::Config)
+    basis = read_basis(config.system.basis)
+    atoms = Vector{Atom}(undef, length(config.system.atoms))
+    for (i, atom_cfg) in enumerate(config.system.atoms)
+        atoms[i] = Atom(atom_cfg.name, atom_cfg.coord, basis[atom_cfg.name])
     end
-    spins = (system_cfg["spins"][1], system_cfg["spins"][2])
+    spins = (config.system.spins[1], config.system.spins[2])
     return Molecule(atoms, spins)
 end

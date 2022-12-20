@@ -5,8 +5,9 @@ using Test
 @testset "Config Loading" begin
     @testset "Read H₂" begin
         config = load_config(joinpath(@__DIR__, "configs/H2.toml"))
-        @test config["system"]["basis"] == "6-31g"
-        @test length(config["system"]["atoms"]) == 2
+        @test config.mcmc.steps == 100
+        @test config.system.basis == "6-31g"
+        @test length(config.system.atoms) == 2
     end
     @testset "Build H₂" begin
         config = load_config(joinpath(@__DIR__, "configs/H2.toml"))
