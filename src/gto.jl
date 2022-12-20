@@ -1,6 +1,6 @@
 using LinearAlgebra
 
-export eval_ao, eval_ao_deriv, eval_ao_laplacian, number_ao
+export eval_ao, eval_ao_deriv, eval_ao_laplacian, number_ao, sum_gaussian
 
 function double_factorial(n::Int)
     if n < 2
@@ -37,7 +37,7 @@ is not included. It's not suitable for spherical terms like x^2-y^2.
 - `r²`: the squared distance between the atom and electron
 """
 function sum_gaussian(j, c, a, r²)
-    return exp2(j) .* (2 / π)^(3 / 4) .*
+    return exp2(j) * (2 / π)^(3 / 4) *
            sum(c .* a .^ (j / 2 + 3 / 4) .* exp.(-a .* r²))
 end
 
@@ -86,7 +86,7 @@ function number_ao(molecule::Molecule)::Int
     nao = 0
     for atom in molecule.atoms
         for bas in atom.basis
-            nao += 2 * bas.l + 1
+            nao += (2 * bas.l + 1) * size(bas.coeff, 2)
         end
     end
     return nao
