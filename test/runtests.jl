@@ -9,8 +9,7 @@ end
     include("./ao_laplacian.jl")
 end
 @safetestset "Functions" begin
-    include("funcs/slater.jl")
-    include("funcs/jastrow.jl")
+    include("funcs.jl")
 end
 @safetestset "Config" begin
     include("config.jl")
