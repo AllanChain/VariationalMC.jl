@@ -18,6 +18,27 @@ function test_grad(func, molecule::Molecule, walker::AbstractVector{Float64})
 end
 
 
+function test_normalized_laplacian(
+    func,
+    molecule::Molecule,
+    walker::AbstractVector{Float64},
+)
+    f1 = exp(log_func(func, molecule, walker))
+    nl = normalized_laplacian(func, molecule, walker)
+    # There will be some numerial instability if dx is too small
+    dx = 1e-5
+    laplacian = 0
+    for i = 1:6
+        x = copy(walker)
+        x[i] += dx
+        f2 = exp(log_func(func, molecule, x))
+        x[i] += dx
+        f3 = exp(log_func(func, molecule, x))
+        laplacian += (f1 + f3 - 2 * f2) / (f2 * dx^2)
+    end
+    @test laplacian ≈ nl rtol = 1e-4
+end
+
 function test_laplacian(func, molecule::Molecule, walker::AbstractVector{Float64})
     f1 = log_func(func, molecule, walker)
     ll = laplacian_log(func, molecule, walker)
@@ -61,20 +82,7 @@ end
         @testset "Normalized laplacian" begin
             walker = randn(MersenneTwister(1), 6)
             slater = SlaterDetProd(molecule)
-            f1 = exp(log_func(slater, molecule, walker))
-            nl = normalized_laplacian(slater, molecule, walker)
-            # There will be some numerial instability if dx is too small
-            dx = 1e-5
-            laplacian = 0
-            for i = 1:6
-                x = copy(walker)
-                x[i] += dx
-                f2 = exp(log_func(slater, molecule, x))
-                x[i] += dx
-                f3 = exp(log_func(slater, molecule, x))
-                laplacian += (f1 + f3 - 2 * f2) / (f2 * dx^2)
-            end
-            @test laplacian ≈ nl rtol = 1e-4
+            test_normalized_laplacian(slater, molecule, walker)
         end
         @testset "Laplacian of log" begin
             walker = randn(MersenneTwister(1), 6)
@@ -110,6 +118,33 @@ end
             walker = randn(MersenneTwister(1), 6)
             jastrow = Jastrow(1)
             test_laplacian(jastrow, molecule, walker)
+        end
+    end
+    @testset "Slater Jastrow" begin
+        @testset "Derivative wrt params" begin
+            walker = randn(MersenneTwister(1), 6)
+            sj = SlaterJastrow(molecule)
+            f = log_func(sj, molecule, walker)
+            dα_f, _, _ = dp_log(sj, molecule, walker)
+            dp = 1e-7
+            sj.slater.mo_coeff_alpha[1, 2] += dp
+            f2 = log_func(sj, molecule, walker)
+            @test (f2 - f) / dp ≈ dα_f[1, 2] rtol = 1e-5
+        end
+        @testset "Derivative wrt electrons" begin
+            walker = randn(MersenneTwister(1), 6)
+            sj = SlaterJastrow(molecule)
+            test_grad(sj, molecule, walker)
+        end
+        @testset "Normalized laplacian" begin
+            walker = randn(MersenneTwister(1), 6)
+            sj = SlaterJastrow(molecule)
+            test_normalized_laplacian(sj, molecule, walker)
+        end
+        @testset "Laplacian of log" begin
+            walker = randn(MersenneTwister(1), 6)
+            sj = SlaterJastrow(molecule)
+            test_laplacian(sj, molecule, walker)
         end
     end
 end
