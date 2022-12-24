@@ -8,8 +8,9 @@ end
     include("./ao_deriv.jl")
     include("./ao_laplacian.jl")
 end
-@safetestset "QMC" begin
-    include("./qmc.jl")
+@safetestset "Functions" begin
+    include("funcs/slater.jl")
+    include("funcs/jastrow.jl")
 end
 @safetestset "Config" begin
     include("config.jl")
