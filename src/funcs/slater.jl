@@ -85,18 +85,11 @@ function normalized_laplacian(
 )::T where {T<:Number}
     electrons = reshape(electrons, 3, :)
     ∇²ao_α, ∇²ao_β = by_αβ(eval_ao_laplacian, molecule, electrons)
-    sum_∇ao_α, sum_∇ao_β = by_αβ(eval_ao_deriv_sum, molecule, electrons)
     ao_α, ao_β = by_αβ(eval_ao, molecule, electrons)
     A_α = slater.mo_coeff_alpha * ao_α
     A_β = slater.mo_coeff_beta * ao_β
-    inv_A_α_mo = A_α \ slater.mo_coeff_alpha
-    inv_A_β_mo = A_β \ slater.mo_coeff_beta
-    return (
-        tr(inv_A_α_mo * ∇²ao_α) + tr(inv_A_α_mo * sum_∇ao_α)^2 -
-        tr((inv_A_α_mo * sum_∇ao_α)^2) +
-        tr(inv_A_β_mo * ∇²ao_β) + tr(inv_A_β_mo * sum_∇ao_β)^2 -
-        tr((inv_A_β_mo * sum_∇ao_β)^2)
-    )
+    return tr(A_α \ slater.mo_coeff_alpha * ∇²ao_α) +
+           tr(A_β \ slater.mo_coeff_beta * ∇²ao_β)
 end
 
 """
@@ -117,19 +110,12 @@ function laplacian_log(
     electrons = reshape(electrons, 3, :)
     ∇²ao_α, ∇²ao_β = by_αβ(eval_ao_laplacian, molecule, electrons)
     ∇ao_α, ∇ao_β = by_αβ(eval_ao_deriv, molecule, electrons)
-    sum_∇ao_α = dropdims(sum(∇ao_α, dims=1), dims=1)
-    sum_∇ao_β = dropdims(sum(∇ao_β, dims=1), dims=1)
     ao_α, ao_β = by_αβ(eval_ao, molecule, electrons)
     A_α = slater.mo_coeff_alpha * ao_α
     A_β = slater.mo_coeff_beta * ao_β
     inv_A_α_mo = A_α \ slater.mo_coeff_alpha
     inv_A_β_mo = A_β \ slater.mo_coeff_beta
-    part1 = (
-        tr(inv_A_α_mo * ∇²ao_α) + tr(inv_A_α_mo * sum_∇ao_α)^2 -
-        tr((inv_A_α_mo * sum_∇ao_α)^2) +
-        tr(inv_A_β_mo * ∇²ao_β) + tr(inv_A_β_mo * sum_∇ao_β)^2 -
-        tr((inv_A_β_mo * sum_∇ao_β)^2)
-    )
+    part1 = tr(inv_A_α_mo * ∇²ao_α) + tr(inv_A_β_mo * ∇²ao_β)
     inv_A_α_mo = inv_A_α_mo[[CartesianIndex()], :, :]
     inv_A_β_mo = inv_A_β_mo[[CartesianIndex()], :, :]
     dotdot(a, b) = dropdims(sum(a .* b, dims = 2), dims = 2)
@@ -137,7 +123,7 @@ function laplacian_log(
         hcat(
             dotdot.(eachslice(inv_A_α_mo, dims = 2), eachslice(∇ao_α, dims = 3))...,
             dotdot.(eachslice(inv_A_β_mo, dims = 2), eachslice(∇ao_β, dims = 3))...,
-        ) .^ 2
+        ) .^ 2,
     )
     return part1 - part2
 end

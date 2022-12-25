@@ -61,6 +61,7 @@ function normalized_laplacian(sj::SlaterJastrow,
     electrons::AbstractVector{T},
 )::T where {T<:Number}
     dx_log_j = dx_log(sj.jastrow, molecule, electrons)
+    # laplacian_log is simpler for Jastrow, normalized_laplacian is simpler for Slater
     return (
         laplacian_log(sj.jastrow, molecule, electrons) + sum(dx_log_j .^ 2) +
         2 * dot(dx_log_j, dx_log(sj.slater, molecule, electrons)) +
