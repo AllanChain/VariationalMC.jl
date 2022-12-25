@@ -14,13 +14,13 @@ end
 end
 
 @option struct QMCConfig
-    iterations::Int = 50
+    iterations::Int = 20
     batch_size::Int = 32
 end
 
 @option struct MCMCConfig
     burn_in_steps::Int = 100
-    steps::Int = 100
+    steps::Int = 20
 end
 
 @option struct Config
