@@ -1,6 +1,6 @@
 export SlaterDetProd
 
-mutable struct SlaterDetProd
+mutable struct SlaterDetProd <: WaveFunction
     mo_coeff_alpha::AbstractMatrix{Float64}
     mo_coeff_beta::AbstractMatrix{Float64}
 end
@@ -24,8 +24,12 @@ function by_αβ(func::Function, molecule::Molecule, electrons)
     end
 end
 
-function eval_ao_deriv_sum(molecule::Molecule, electrons)
-    return dropdims(sum(eval_ao_deriv(molecule, electrons), dims = 1), dims = 1)
+function update_func!(
+    slater::SlaterDetProd,
+    params::Tuple{Matrix{T},Matrix{T}},
+) where {T<:Number}
+    slater.mo_coeff_alpha += params[1]
+    slater.mo_coeff_beta += params[2]
 end
 
 function signed_log_func(

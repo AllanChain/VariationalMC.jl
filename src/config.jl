@@ -14,23 +14,26 @@ end
 end
 
 @option struct QMCConfig
-    iterations::Int
-    batch_size::Int
+    iterations::Int = 50
+    batch_size::Int = 32
 end
 
 @option struct MCMCConfig
-    burn_in_steps::Int
-    steps::Int
+    burn_in_steps::Int = 100
+    steps::Int = 100
 end
 
 @option struct Config
-    qmc::QMCConfig = QMCConfig(; iterations = 50, batch_size = 32)
-    mcmc::MCMCConfig = MCMCConfig(; burn_in_steps = 100, steps = 100)
+    qmc::QMCConfig = QMCConfig()
+    mcmc::MCMCConfig = MCMCConfig()
     system::SystemConfig
 end
 
-function load_config(config_file::String)::Config
-    return from_toml(Config, config_file)
+function load_config(config_file::String; kwargs...)::Config
+    if !isabspath(config_file)
+        config_file = joinpath(@__DIR__, "../test/configs", config_file)
+    end
+    return from_toml(Config, config_file; kwargs...)
 end
 
 function build_molecule(config::Config)

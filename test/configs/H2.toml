@@ -1,3 +1,6 @@
+[qmc]
+batch_size = 256
+
 [system]
 basis = "6-31g"
 spins = [1, 1]

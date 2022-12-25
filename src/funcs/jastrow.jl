@@ -1,6 +1,6 @@
 export Jastrow
 
-mutable struct Jastrow
+mutable struct Jastrow <: WaveFunction
     b::Float64
 end
 
@@ -9,6 +9,13 @@ function split_αβ(
     electrons::AbstractMatrix{T},
 ) where {T<:Number}
     return (electrons[:, begin:molecule.spins[1]], electrons[:, molecule.spins[1]+1:end])
+end
+
+function update_func!(
+    jastrow::Jastrow,
+    params::Tuple{T},
+) where {T<:Number}
+    jastrow.b += params[1]
 end
 
 function signed_log_func(

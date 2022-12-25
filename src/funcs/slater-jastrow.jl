@@ -1,6 +1,6 @@
 export SlaterJastrow
 
-mutable struct SlaterJastrow
+mutable struct SlaterJastrow <: WaveFunction
     slater::SlaterDetProd
     jastrow::Jastrow
 end
@@ -12,6 +12,14 @@ function SlaterJastrow(molecule::Molecule)
     )
 end
 
+function update_func!(
+    sj::SlaterJastrow,
+    params::Tuple{Matrix{T},Matrix{T},T},
+) where {T<:Number}
+    update_func!(sj.slater, params[1:2])
+    # update_func!(sj.jastrow, params[3:end])
+end
+
 function signed_log_func(
     sj::SlaterJastrow,
     molecule::Molecule,
@@ -21,7 +29,6 @@ function signed_log_func(
     log_jastrow, sgn_jastrow = signed_log_func(sj.jastrow, molecule, electrons)
     return log_slater + log_jastrow, sgn_slater * sgn_jastrow
 end
-
 
 function dp_log(
     sj::SlaterJastrow,
