@@ -17,7 +17,7 @@ function update_func!(
     params::Tuple{Matrix{T},Matrix{T},T},
 ) where {T<:Number}
     update_func!(sj.slater, params[1:2])
-    # update_func!(sj.jastrow, params[3:end])
+    update_func!(sj.jastrow, params[3:end])
 end
 
 function signed_log_func(
