@@ -50,10 +50,24 @@ function local_potential_energy(
 end
 
 function local_energy(wf::WaveFunction, molecule::Molecule, electrons)
-    return (
+    el = (
         local_kinetic_energy(wf, molecule, electrons) +
         local_potential_energy(molecule, electrons)
     )
+    q1, q3 = quantile(el, [0.25, 0.75])
+    iqr = q3 - q1
+    clamp!(el, q1 - 3 * iqr, q3 + 3 * iqr)
+    return el
+end
+
+function local_energy_deriv_params(wf::WaveFunction, molecule::Molecule, electrons)
+    el = local_energy(wf, molecule, electrons)
+        ev = mean(el)
+    ∂p_logψ = dp_log(wf, molecule, electrons)
+    mean_∂p_logψ = mean_∂p(∂p_logψ)
+    StructArrays.foreachfield(v -> v .*= el, ∂p_logψ)
+    mean_el_∂p_logψ = mean_∂p(∂p_logψ)
+    return el, 2 .* (mean_el_∂p_logψ .- ev .* mean_∂p_logψ)
 end
 
 function init_walkers(
@@ -108,8 +122,21 @@ function mean_∂p(∂p::StructArray)
 end
 
 function vmc(config::Config)
+    # Adam params
+    β1 = 0.9
+    β2 = 0.999
+    α = 0.01
+    ϵ = 1e-8
+
     molecule = build_molecule(config)
     wf = SlaterJastrow(molecule)
+
+    m = (
+        zeros(size(wf.slater.mo_coeff_alpha)),
+        zeros(size(wf.slater.mo_coeff_beta)),
+        0,
+    )
+    v = deepcopy(m)
     walkers = init_walkers(config.qmc.batch_size, sum(molecule.spins))
     width = 0.1
     walkers, width, _ =
@@ -122,17 +149,19 @@ function vmc(config::Config)
             adjust = true,
         )
 
-    for i = 1:config.qmc.iterations
-        el = local_energy(wf, molecule, walkers)
+    for t = 1:config.qmc.iterations
+        el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
         ev = mean(el)
         σ²e = var(el)
-        println("Loop $i; Energy $ev; Variance $σ²e")
-        ∂p_logψ = dp_log(wf, molecule, walkers)
-        mean_∂p_logψ = mean_∂p(∂p_logψ)
-        StructArrays.foreachfield(v -> v .*= el, ∂p_logψ)
-        mean_el_∂p_logψ = mean_∂p(∂p_logψ)
-        ∂p_E = 2 .* (mean_el_∂p_logψ .- ev .* mean_∂p_logψ)
-        update_func!(wf, -1 .* ∂p_E)
+        println(
+            "Loop $t; Energy $ev; Variance $σ²e; Params $(wf.slater.mo_coeff_alpha[1, 1])",
+        )
+        m = broadcast(x -> x .* β1, m) .+ broadcast(x -> x .* (1 - β1), ∂p_E)
+        v = broadcast(x -> x .* β2, v) .+ broadcast(x -> x .^ 2 .* (1 - β2), ∂p_E)
+        mhat = m ./ (1 - β1 ^ t)
+        vhat = v ./ (1 - β2 ^ t)
+        dp = α .* broadcast((mh, vh) -> mh ./ (sqrt.(vh) .+ ϵ), mhat, vhat)
+        update_func!(wf, -1 .* dp)
         walkers, width, acceptance =
             batch_mcmc_walk(config.mcmc.steps, wf, molecule, walkers, width)
         mean_acceptance = mean(acceptance)
