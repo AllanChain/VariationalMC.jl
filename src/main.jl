@@ -5,14 +5,7 @@ using LinearAlgebra
 using StructArrays
 using Distances
 
-const Electrons = AbstractVector{Float64}
-const BatchElectrons = AbstractMatrix{Float64}
-mutable struct QMCParams
-    mo_coeff_alpha::AbstractMatrix{Float64}
-    mo_coeff_beta::AbstractMatrix{Float64}
-end
-
-export QMCParams, vmc, local_energy, local_kinetic_energy, local_potential_energy
+export vmc, local_energy, local_kinetic_energy, local_potential_energy
 
 function local_kinetic_energy(
     wf::WaveFunction,
@@ -62,7 +55,7 @@ end
 
 function local_energy_deriv_params(wf::WaveFunction, molecule::Molecule, electrons)
     el = local_energy(wf, molecule, electrons)
-        ev = mean(el)
+    ev = mean(el)
     ∂p_logψ = dp_log(wf, molecule, electrons)
     mean_∂p_logψ = mean_∂p(∂p_logψ)
     StructArrays.foreachfield(v -> v .*= el, ∂p_logψ)
@@ -81,9 +74,9 @@ end
 function mcmc_walk(
     wf::WaveFunction,
     molecule::Molecule,
-    electrons::BatchElectrons,
+    electrons::AbstractMatrix{Float64},
     width::Float64,
-)::Tuple{BatchElectrons,Float64}
+)::Tuple{AbstractMatrix{Float64},Float64}
     new_walkers = electrons + randn(size(electrons)) * width
     p = exp.(2(log_func(wf, molecule, new_walkers) - log_func(wf, molecule, electrons)))
     cond = rand(Float64, size(p)) .< p
@@ -93,28 +86,40 @@ function mcmc_walk(
 end
 
 
-function batch_mcmc_walk(
+function batch_mcmc_walk!(
     steps::Integer,
     wf::WaveFunction,
     molecule::Molecule,
-    electrons::BatchElectrons,
+    electrons::AbstractMatrix{Float64},
     width::Float64;
-    adjust::Bool = false,
-)
-    walkers = electrons
-    accum_accept = Vector{Float64}(undef, steps)
-    for i = 1:steps
-        walkers, acceptance = mcmc_walk(wf, molecule, walkers, width)
-        accum_accept[i] = acceptance
-        if adjust
-            if acceptance > 0.55
-                width *= 1.1
-            elseif acceptance < 0.5
-                width *= 0.9
-            end
+)::Tuple{Float64,Float64}
+    nthreads = Threads.nthreads()
+    nwalkers = size(electrons, 2)
+    perchunk = ceil(Int64, nwalkers / nthreads)
+    accum_accept = Matrix{Float64}(undef, nthreads, steps)
+
+    Threads.@threads for n = 1:nthreads
+        if n == nthreads
+            idx_walkers = (n-1)*perchunk+1:nwalkers
+        else
+            idx_walkers = (n-1)*perchunk+1:n*perchunk
         end
+        walkers = electrons[:, idx_walkers]
+        accum_accept_n = Vector{Float64}(undef, steps)
+        for i = 1:steps
+            walkers, accum_accept_n[i] =
+                mcmc_walk(wf, molecule, walkers, width)
+        end
+        electrons[:, idx_walkers] = walkers
+        accum_accept[n, :] = accum_accept_n
     end
-    return walkers, width, accum_accept
+    acceptance = mean(accum_accept)
+    if acceptance > 0.55
+        return width * 1.1, acceptance
+    elseif acceptance < 0.5
+        return width * 0.9, acceptance
+    end
+    return width, acceptance
 end
 
 function mean_∂p(∂p::StructArray)
@@ -125,51 +130,37 @@ function vmc(config::Config)
     # Adam params
     β1 = 0.9
     β2 = 0.999
-    α = 0.01
+    α = 0.001
     ϵ = 1e-8
 
     molecule = build_molecule(config)
     wf = SlaterJastrow(molecule)
 
-    m = (
+    m::Tuple{Matrix{Float64},Matrix{Float64},Float64} = (
         zeros(size(wf.slater.mo_coeff_alpha)),
         zeros(size(wf.slater.mo_coeff_beta)),
         0,
     )
+
     v = deepcopy(m)
     walkers = init_walkers(config.qmc.batch_size, sum(molecule.spins))
-    width = 0.1
-    walkers, width, _ =
-        batch_mcmc_walk(
-            config.mcmc.burn_in_steps,
-            wf,
-            molecule,
-            walkers,
-            width,
-            adjust = true,
-        )
+    width::Float64 = 0.1
+    width, acceptance =
+        batch_mcmc_walk!(config.mcmc.burn_in_steps, wf, molecule, walkers, width)
 
     for t = 1:config.qmc.iterations
         el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
         ev = mean(el)
         σ²e = var(el)
-        println(
-            "Loop $t; Energy $ev; Variance $σ²e; Params $(wf.slater.mo_coeff_alpha[1, 1])",
-        )
+        println("Loop $t; Energy $ev; Variance $σ²e; Acceptance $acceptance")
         m = broadcast(x -> x .* β1, m) .+ broadcast(x -> x .* (1 - β1), ∂p_E)
         v = broadcast(x -> x .* β2, v) .+ broadcast(x -> x .^ 2 .* (1 - β2), ∂p_E)
-        mhat = m ./ (1 - β1 ^ t)
-        vhat = v ./ (1 - β2 ^ t)
+        mhat = m ./ (1 - β1^t)
+        vhat = v ./ (1 - β2^t)
         dp = α .* broadcast((mh, vh) -> mh ./ (sqrt.(vh) .+ ϵ), mhat, vhat)
         update_func!(wf, -1 .* dp)
-        walkers, width, acceptance =
-            batch_mcmc_walk(config.mcmc.steps, wf, molecule, walkers, width)
-        mean_acceptance = mean(acceptance)
-        if mean_acceptance > 0.55
-            width *= 1.1
-        elseif mean_acceptance < 0.5
-            width *= 0.9
-        end
+        width, acceptance =
+            batch_mcmc_walk!(config.mcmc.steps, wf, molecule, walkers, width)
     end
 
     return wf, walkers
