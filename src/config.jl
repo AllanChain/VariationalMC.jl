@@ -15,7 +15,7 @@ end
 
 @option struct QMCConfig
     iterations::Int = 20
-    batch_size::Int = 32
+    batch_size::Int = 256
 end
 
 @option struct MCMCConfig
