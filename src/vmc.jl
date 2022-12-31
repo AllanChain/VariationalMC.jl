@@ -21,23 +21,43 @@ end
 
 function vmc(config::Config)
     molecule = build_molecule(config)
-    wf = SlaterJastrow(molecule)
 
-    if config.qmc.optimizer == "adam"
-        optimizer = AdamOptimizer(wf)
-    elseif config.qmc.optimizer == "sgd"
-        optimizer = SGDOptimizer()
+    ckpt_file = checkpoint.find_most_recent(config.checkpoint.restore_path)
+    if ckpt_file == "" # No checkpoint found
+        @warn "Checkpoint not found. Performing new VMC."
+        wf = SlaterJastrow(molecule)
+        walkers = init_walkers(config.qmc.batch_size, sum(molecule.spins))
+        width::Float64 = 0.1
+        width, acceptance =
+            batch_mcmc_walk!(config.mcmc.burn_in_steps, wf, molecule, walkers, width)
+
+        if config.qmc.optimizer == "adam"
+            optimizer = AdamOptimizer(wf)
+        elseif config.qmc.optimizer == "sgd"
+            optimizer = SGDOptimizer()
+        else
+            @error "Unknown optimizer $(config.qmc.optimizer). Using Adam."
+            optimizer = AdamOptimizer(wf)
+        end
     else
-        @error "Unknown optimizer $(config.qmc.optimizer). Using Adam"
-        optimizer = AdamOptimizer(wf)
+        wf, walkers, optimizer, width = checkpoint.load(ckpt_file)
+        acceptance = NaN
+        @info "Checkpoint loaded from $ckpt_file"
     end
 
-    walkers = init_walkers(config.qmc.batch_size, sum(molecule.spins))
-    width::Float64 = 0.1
-    width, acceptance =
-        batch_mcmc_walk!(config.mcmc.burn_in_steps, wf, molecule, walkers, width)
+    if config.checkpoint.save_path == ""
+        @warn "checkpoint.save_path not provided. Saving checkpoint is skipped."
+    elseif !ispath(config.checkpoint.save_path)
+        mkdir(config.checkpoint.save_path)
+    end
 
-    for t = 1:config.qmc.iterations
+    if optimizer.t > config.qmc.iterations
+        @info "Already done. Exiting."
+        return
+    end
+
+    last_check_time = time()
+    for t = optimizer.t:config.qmc.iterations
         el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
         ev = mean(el)
         σ²e = var(el)
@@ -45,7 +65,23 @@ function vmc(config::Config)
         update_func!(wf, step!(optimizer, ∂p_E))
         width, acceptance =
             batch_mcmc_walk!(config.mcmc.steps, wf, molecule, walkers, width)
+        if (
+            config.checkpoint.save_path != "" &&
+            (time() - last_check_time) * 1e-6 > config.checkpoint.save_interval
+        )
+            last_check_time = time()
+            ckpt_file = checkpoint.save(
+                config.checkpoint.save_path,
+                t, wf, walkers, optimizer, width,
+            )
+            @info "Saved checkpoint to $ckpt_file"
+        end
     end
+    ckpt_file = checkpoint.save(
+        config.checkpoint.save_path,
+        config.qmc.iterations,
+        wf, walkers, optimizer, width,
+    )
 
     return wf, walkers
 end

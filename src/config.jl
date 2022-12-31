@@ -24,9 +24,16 @@ end
     steps::Int = 20
 end
 
+@option struct CheckpointConfig
+    restore_path::String = ""
+    save_path::String = ""
+    save_interval::Int = 600
+end
+
 @option struct Config
     qmc::QMCConfig = QMCConfig()
     mcmc::MCMCConfig = MCMCConfig()
+    checkpoint::CheckpointConfig = CheckpointConfig()
     system::SystemConfig
 end
 
