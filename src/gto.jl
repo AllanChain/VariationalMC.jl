@@ -1,4 +1,5 @@
 using LinearAlgebra
+using LazyArrays
 
 export eval_ao, eval_ao_deriv, eval_ao_laplacian, number_ao, sum_gaussian
 
@@ -38,10 +39,11 @@ is not included. It's not suitable for spherical terms like x^2-y^2.
 """
 function sum_gaussian(j, c, a, r²)
     return exp2(j) * (2 / π)^(3 / 4) *
-           sum(c .* a .^ (j / 2 + 3 / 4) .* exp.(-a .* r²))
+           sum(@~ c .* a .^ (j ./ 2 .+ 3 ./ 4) .* exp.(-1 .* a .* r²))
 end
 
 function eval_ao(molecule::Molecule, x::AbstractMatrix{T})::Matrix{T} where {T<:Number}
+    # https://discourse.julialang.org/t/type-stability-problem-vcat-tuple-and-function/53862/3
     return reduce(hcat, [eval_ao(molecule, x1) for x1 in eachcol(x)])
 end
 
