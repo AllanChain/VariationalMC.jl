@@ -1,5 +1,5 @@
-using QMC
-using QMC.molecule
+using VariationalMC
+using VariationalMC.molecule
 using Test
 
 @testset "Basis" begin

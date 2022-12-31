@@ -1,4 +1,4 @@
-name = "QMC"
+name = "VariationalMC"
 uuid = "4e83c420-d3ab-4c23-a72c-d14435f99104"
 authors = ["Allan Chain <36528777+AllanChain@users.noreply.github.com>"]
 version = "0.1.0"

@@ -16,8 +16,8 @@ end
 
 # ╔═╡ dafcbf36-a777-46b6-a710-838167e452c6
 begin
-	using QMC
-	using QMC.molecule
+	using VariationalMC
+	using VariationalMC.molecule
 end
 
 # ╔═╡ e62bd613-cde1-43e3-848c-872e7d1a3f5a

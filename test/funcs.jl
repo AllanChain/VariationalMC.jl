@@ -1,6 +1,6 @@
-using QMC
-using QMC.molecule
-using QMC.funcs
+using VariationalMC
+using VariationalMC.molecule
+using VariationalMC.funcs
 using LinearAlgebra
 using Random
 using Test

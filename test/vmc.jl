@@ -1,5 +1,5 @@
-using QMC
-using QMC.molecule
+using VariationalMC
+using VariationalMC.molecule
 
 function main(steps::Int)
     basis = read_basis("6-31g")

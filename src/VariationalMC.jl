@@ -1,4 +1,4 @@
-module QMC
+module VariationalMC
 
 module molecule
 include("basis.jl") 
@@ -7,7 +7,7 @@ include("gto.jl")
 end
 
 module funcs
-using QMC.molecule
+using VariationalMC.molecule
 include("funcs/init.jl")
 include("funcs/slater.jl")
 include("funcs/jastrow.jl")
