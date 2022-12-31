@@ -17,6 +17,7 @@ end
     iterations::Int = 20
     batch_size::Int = 256
     optimizer::String = "adam"
+    ansatz::String = "slater"
 end
 
 @option struct MCMCConfig

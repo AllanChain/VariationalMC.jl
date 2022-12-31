@@ -25,7 +25,15 @@ function vmc(config::Config)
     ckpt_file = checkpoint.find_most_recent(config.checkpoint.restore_path)
     if ckpt_file == "" # No checkpoint found
         @warn "Checkpoint not found. Performing new VMC."
-        wf = SlaterJastrow(molecule)
+
+        if config.qmc.ansatz == "slater"
+            wf = SlaterDetProd(molecule)
+        elseif config.qmc.ansatz == "slater-jastrow"
+            wf = SlaterJastrow(molecule)
+        else
+            @error "Unknown wave function ansatz $(config.qmc.ansatz)"
+        end
+
         walkers = init_walkers(config.qmc.batch_size, sum(molecule.spins))
         width::Float64 = 0.1
         width, acceptance =
