@@ -2,7 +2,7 @@ using LinearAlgebra
 using StructArrays
 
 export WaveFunction, update_func!, log_func, signed_log_func, dp_log, dx_log,
-    normalized_laplacian, laplacian_log
+    normalized_laplacian, laplacian_log, zeros_like_params
 
 abstract type WaveFunction end
 

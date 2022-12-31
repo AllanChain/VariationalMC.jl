@@ -18,6 +18,10 @@ function update_func!(
     jastrow.b += params[1]
 end
 
+function zeros_like_params(::Jastrow)::Tuple{Float64}
+    return (0,)
+end
+
 function signed_log_func(
     jastrow::Jastrow,
     molecule::Molecule,

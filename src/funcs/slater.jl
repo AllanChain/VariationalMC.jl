@@ -32,6 +32,15 @@ function update_func!(
     slater.mo_coeff_beta += params[2]
 end
 
+function zeros_like_params(
+    slater::SlaterDetProd,
+)::Tuple{Matrix{Float64},Matrix{Float64}}
+    return (
+        zeros(size(slater.mo_coeff_alpha)),
+        zeros(size(slater.mo_coeff_beta)),
+    )
+end
+
 function signed_log_func(
     slater::SlaterDetProd,
     molecule::Molecule,

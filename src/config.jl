@@ -16,6 +16,7 @@ end
 @option struct QMCConfig
     iterations::Int = 20
     batch_size::Int = 256
+    optimizer::String = "adam"
 end
 
 @option struct MCMCConfig

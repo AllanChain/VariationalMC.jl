@@ -17,6 +17,7 @@ end
 using .molecule
 using .funcs
 include("config.jl")
+include("optimizer.jl")
 include("hamiltonian.jl")
 include("mcmc.jl")
 include("vmc.jl")

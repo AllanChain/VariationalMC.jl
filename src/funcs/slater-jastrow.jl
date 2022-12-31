@@ -20,6 +20,12 @@ function update_func!(
     update_func!(sj.jastrow, params[3:end])
 end
 
+function zeros_like_params(
+    sj::SlaterJastrow,
+)::Tuple{Matrix{Float64},Matrix{Float64},Float64}
+    return (zeros_like_params(sj.slater)..., 0)
+end
+
 function signed_log_func(
     sj::SlaterJastrow,
     molecule::Molecule,
