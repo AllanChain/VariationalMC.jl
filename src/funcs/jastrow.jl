@@ -29,20 +29,20 @@ function signed_log_func(
     # parallel pairs
     for i = 1:size(eα, 2)
         for j = 1:i-1
-            r_ij = norm(eα[:, i] - eα[:, j])
+            @inbounds r_ij = norm(eα[:, i] .- eα[:, j])
             result += 1 / 4 * r_ij / (1 + jastrow.b * r_ij)
         end
     end
     for i = 1:size(eβ, 2)
         for j = 1:i-1
-            r_ij = norm(eβ[:, i] - eβ[:, j])
+            @inbounds r_ij = norm(eβ[:, i] .- eβ[:, j])
             result += 1 / 4 * r_ij / (1 + jastrow.b * r_ij)
         end
     end
     # antiparallel pairs
     for i = 1:size(eα, 2)
         for j = 1:size(eβ, 2)
-            r_ij = norm(eα[:, i] - eβ[:, j])
+            @inbounds r_ij = norm(eα[:, i] .- eβ[:, j])
             result += 1 / 2 * r_ij / (1 + jastrow.b * r_ij)
         end
     end
@@ -60,20 +60,20 @@ function dp_log(
     # parallel pairs
     for i = 1:size(eα, 2)
         for j = 1:i-1
-            r_ij = norm(eα[:, i] - eα[:, j])
+            @inbounds r_ij = norm(eα[:, i] .- eα[:, j])
             result += -1 / 4 * r_ij^2 / (1 + jastrow.b * r_ij)^2
         end
     end
     for i = 1:size(eβ, 2)
         for j = 1:i-1
-            r_ij = norm(eβ[:, i] - eβ[:, j])
+            @inbounds r_ij = norm(eβ[:, i] .- eβ[:, j])
             result += -1 / 4 * r_ij^2 / (1 + jastrow.b * r_ij)^2
         end
     end
     # antiparallel pairs
     for i = 1:size(eα, 2)
         for j = 1:size(eβ, 2)
-            r_ij = norm(eα[:, i] - eβ[:, j])
+            @inbounds r_ij = norm(eα[:, i] .- eβ[:, j])
             result += -1 / 2 * r_ij^2 / (1 + jastrow.b * r_ij)^2
         end
     end
@@ -93,13 +93,13 @@ function dx_log(
             if j == i
                 continue
             end
-            x_ij = eα[:, i] - eα[:, j]
-            r_ij = norm(x_ij)
+            @inbounds x_ij = eα[:, i] .- eα[:, j]
+            @inbounds r_ij = norm(x_ij)
             result[:, i] += 1 / 4 * x_ij / r_ij / (1 + jastrow.b * r_ij)^2
         end
         for j = 1:size(eβ, 2)
-            x_ij = eα[:, i] - eβ[:, j]
-            r_ij = norm(x_ij)
+            @inbounds x_ij = eα[:, i] .- eβ[:, j]
+            @inbounds r_ij = norm(x_ij)
             result[:, i] += 1 / 2 * x_ij / r_ij / (1 + jastrow.b * r_ij)^2
         end
     end
@@ -108,13 +108,13 @@ function dx_log(
             if j == i
                 continue
             end
-            x_ij = eβ[:, i] - eβ[:, j]
-            r_ij = norm(x_ij)
+            @inbounds x_ij = eβ[:, i] .- eβ[:, j]
+            @inbounds r_ij = norm(x_ij)
             result[:, i+molecule.spins[1]] += 1 / 4 * x_ij / r_ij / (1 + jastrow.b * r_ij)^2
         end
         for j = 1:size(eα, 2)
-            x_ij = eβ[:, i] - eα[:, j]
-            r_ij = norm(x_ij)
+            @inbounds x_ij = eβ[:, i] .- eα[:, j]
+            @inbounds r_ij = norm(x_ij)
             result[:, i+molecule.spins[1]] += 1 / 2 * x_ij / r_ij / (1 + jastrow.b * r_ij)^2
         end
     end
@@ -135,11 +135,11 @@ function laplacian_log(
             if j == i
                 continue
             end
-            r_ij = norm(eα[:, i] - eα[:, j])
+            @inbounds r_ij = norm(eα[:, i] .- eα[:, j])
             result += 1 / 2 / r_ij / (1 + jastrow.b * r_ij)^3
         end
         for j = 1:size(eβ, 2)
-            r_ij = norm(eα[:, i] - eβ[:, j])
+            @inbounds r_ij = norm(eα[:, i] .- eβ[:, j])
             result += 1 / r_ij / (1 + jastrow.b * r_ij)^3
         end
     end
@@ -148,11 +148,11 @@ function laplacian_log(
             if j == i
                 continue
             end
-            r_ij = norm(eβ[:, i] - eβ[:, j])
+            @inbounds r_ij = norm(eβ[:, i] .- eβ[:, j])
             result += 1 / 2 / r_ij / (1 + jastrow.b * r_ij)^3
         end
         for j = 1:size(eα, 2)
-            r_ij = norm(eβ[:, i] - eα[:, j])
+            @inbounds r_ij = norm(eβ[:, i] .- eα[:, j])
             result += 1 / r_ij / (1 + jastrow.b * r_ij)^3
         end
     end
