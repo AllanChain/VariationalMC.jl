@@ -41,12 +41,12 @@ function sum_gaussian(j, c, a, r²)
            sum(c .* a .^ (j / 2 + 3 / 4) .* exp.(-a .* r²))
 end
 
-function eval_ao(molecule::Molecule, x::AbstractMatrix{T}) where {T<:Number}
-    return hcat([eval_ao(molecule, x1) for x1 in eachcol(x)]...)
+function eval_ao(molecule::Molecule, x::AbstractMatrix{T})::Matrix{T} where {T<:Number}
+    return reduce(hcat, [eval_ao(molecule, x1) for x1 in eachcol(x)])
 end
 
-function eval_ao(molecule::Molecule, x::AbstractVector{T}) where {T<:Number}
-    ao = Vector{Number}(undef, number_ao(molecule))
+function eval_ao(molecule::Molecule, x::AbstractVector{T})::Vector{T} where {T<:Number}
+    ao = Vector{T}(undef, number_ao(molecule))
     i = 1
     for atom in molecule.atoms
         r::Vector{T} = x .- atom.coord

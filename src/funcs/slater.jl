@@ -1,8 +1,8 @@
 export SlaterDetProd
 
 mutable struct SlaterDetProd <: WaveFunction
-    mo_coeff_alpha::AbstractMatrix{Float64}
-    mo_coeff_beta::AbstractMatrix{Float64}
+    mo_coeff_alpha::Matrix{Float64}
+    mo_coeff_beta::Matrix{Float64}
 end
 
 function SlaterDetProd(molecule::Molecule)

@@ -24,7 +24,7 @@ function signed_log_func(
     electrons::AbstractVector{T},
 )::Tuple{T,T} where {T<:Number}
     electrons = reshape(electrons, 3, :)
-    result = 0
+    result::T = 0
     eα, eβ = split_αβ(molecule, electrons)
     # parallel pairs
     for i = 1:size(eα, 2)
