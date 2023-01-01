@@ -5,6 +5,7 @@ using LinearAlgebra
 using StructArrays
 using Distances
 using OrderedCollections
+import Configurations: to_toml
 
 export vmc
 
@@ -40,13 +41,12 @@ function vmc(config::Config)
         width, acceptance =
             batch_mcmc_walk!(config.mcmc.burn_in_steps, wf, molecule, walkers, width)
 
-        if config.qmc.optimizer == "adam"
-            optimizer = AdamOptimizer(wf)
-        elseif config.qmc.optimizer == "sgd"
-            optimizer = SGDOptimizer()
+        if config.optim.optimizer == "adam"
+            optimizer = AdamOptimizer(wf, config.optim.adam)
+        elseif config.optim.optimizer == "sgd"
+            optimizer = SGDOptimizer(wf, config.optim.sgd)
         else
-            @error "Unknown optimizer $(config.qmc.optimizer). Using Adam."
-            optimizer = AdamOptimizer(wf)
+            return error("Unknown optimizer $(config.qmc.optimizer).")
         end
     else
         wf, walkers, optimizer, width = checkpoint.load(ckpt_file)

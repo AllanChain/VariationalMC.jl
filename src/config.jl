@@ -16,7 +16,6 @@ end
 @option struct QMCConfig
     iterations::Int = 20
     batch_size::Int = 256
-    optimizer::String = "adam"
     ansatz::String = "slater"
 end
 
@@ -31,10 +30,30 @@ end
     save_interval::Int = 60
 end
 
+@option struct AdamConfig
+    beta1::Float64 = 0.9     # Exp. decay first moment
+    beta2::Float64 = 0.999   # Exp. decay second moment
+    a::Float64 = 0.1         # Step size
+    epsilon::Float64 = 1e-8  # Epsilon for stability
+end
+
+@option struct SGDConfig
+    learning_rate::Float64 = 1.0
+    decay_step::Int = 100
+    decay_rate::Float64 = 0.1
+end
+
+@option struct OptimConfig
+    optimizer::String = "adam"
+    adam::AdamConfig = AdamConfig()
+    sgd::SGDConfig = SGDConfig()
+end
+
 @option struct Config
     qmc::QMCConfig = QMCConfig()
     mcmc::MCMCConfig = MCMCConfig()
     checkpoint::CheckpointConfig = CheckpointConfig()
+    optim::OptimConfig = OptimConfig()
     system::SystemConfig
 end
 

@@ -1,4 +1,5 @@
 import VariationalMC.funcs: WaveFunction, zeros_like_params
+import VariationalMC.config: AdamConfig, SGDConfig
 
 export Optimizer, AdamOptimizer, SGDOptimizer, step!
 
@@ -16,15 +17,16 @@ mutable struct AdamOptimizer <: Optimizer
     t::Int            # Time step (iteration)
 end
 
-function AdamOptimizer(wf::WaveFunction)
-    m = zeros_like_params(wf)
-    v = zeros_like_params(wf)
-    t = 0
-    β1 = 0.9
-    β2 = 0.999
-    α = 0.001
-    ϵ = 1e-8
-    AdamOptimizer(m, v, β1, β2, α, ϵ, t)
+function AdamOptimizer(wf::WaveFunction, adam_config::AdamConfig)
+    return AdamOptimizer(
+        zeros_like_params(wf),
+        zeros_like_params(wf),
+        adam_config.beta1,
+        adam_config.beta2,
+        adam_config.a,
+        adam_config.epsilon,
+        0,
+    )
 end
 
 function step!(adam::AdamOptimizer, dp_el::TupleParams)::TupleParams
@@ -37,16 +39,31 @@ function step!(adam::AdamOptimizer, dp_el::TupleParams)::TupleParams
         broadcast(x -> x .^ 2 .* (1 - adam.beta2), dp_el)
     mhat = adam.m ./ (1 - adam.beta1^adam.t)
     vhat = adam.v ./ (1 - adam.beta2^adam.t)
-    return -1 .* adam.a .* broadcast((mh, vh) -> mh ./ (sqrt.(vh) .+ adam.epsilon), mhat, vhat)
+    return -1 .* adam.a .*
+           broadcast((mh, vh) -> mh ./ (sqrt.(vh) .+ adam.epsilon), mhat, vhat)
 end
 
 
 mutable struct SGDOptimizer <: Optimizer
     t::Int
-    SGDOptimizer() = new(0)
+    learning_rate::Float64
+    decay_step::Int
+    decay_rate::Float64
+end
+
+function SGDOptimizer(::WaveFunction, sgd_config::SGDConfig)
+    return SGDOptimizer(
+        0,
+        sgd_config.learning_rate,
+        sgd_config.decay_step,
+        sgd_config.decay_rate,
+    )
 end
 
 function step!(sgd::SGDOptimizer, dp_el::TupleParams)::TupleParams
     sgd.t += 1
-    return -1 .* dp_el
+    if sgd.t % sgd.decay_step == 0
+        sgd.learning_rate *= sgd.decay_rate
+    end
+    return -sgd.learning_rate .* dp_el
 end

@@ -7,11 +7,16 @@ include("gto.jl")
 end
 
 module funcs
-using VariationalMC.molecule
+using ..molecule
 include("funcs/init.jl")
 include("funcs/slater.jl")
 include("funcs/jastrow.jl")
 include("funcs/slater-jastrow.jl")
+end
+
+module config
+using ..molecule
+include("config.jl")
 end
 
 module optimizer
@@ -24,9 +29,11 @@ end
 
 using .molecule
 using .funcs
+using .config
 using .optimizer
 import .checkpoint
-include("config.jl")
+export load_config
+
 include("stats.jl")
 include("hamiltonian.jl")
 include("mcmc.jl")
