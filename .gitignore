@@ -1,0 +1,4 @@
+# test data
+data/
+# null-ls.nvim temp files
+.null-ls*
