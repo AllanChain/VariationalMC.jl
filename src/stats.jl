@@ -44,6 +44,8 @@ function log_stats(
         stats.should_add_header = false
     end
     write(stats.stream, join(values(saving_data), ",") * "\n")
+    flush(stats.stream)
+
     print(Dates.format(now(), "[yyyy-mm-dd HH:MM:SS.sss] "))
     for data in (saving_data, printing_data)
         for (k, v) in data

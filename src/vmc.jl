@@ -88,7 +88,7 @@ function vmc(config::Config)
                 batch_mcmc_walk!(config.mcmc.steps, wf, molecule, walkers, width)
             if (
                 config.checkpoint.save_path != "" &&
-                (time() - last_check_time) / 1000 > config.checkpoint.save_interval
+                (time() - last_check_time) > config.checkpoint.save_interval
             )
                 last_check_time = time()
                 ckpt_file = checkpoint.save(
@@ -104,6 +104,7 @@ function vmc(config::Config)
         config.qmc.iterations,
         wf, walkers, optimizer, width,
     )
+    @info "Saved checkpoint to $ckpt_file"
 
     return wf, walkers
 end
