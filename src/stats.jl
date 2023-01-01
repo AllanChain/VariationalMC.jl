@@ -34,15 +34,21 @@ function with_stats(f::Function, restore_path::AbstractString, save_path::Abstra
     close(stats.stream)
 end
 
-function log_stats(stats::StatsLogger, d::AbstractDict)
+function log_stats(
+    stats::StatsLogger,
+    saving_data::AbstractDict,
+    printing_data::AbstractDict,
+)
     if stats.should_add_header
-        write(stats.stream, join(keys(d), ",") * "\n")
+        write(stats.stream, join(keys(saving_data), ",") * "\n")
         stats.should_add_header = false
     end
-    write(stats.stream, join(values(d), ",") * "\n")
+    write(stats.stream, join(values(saving_data), ",") * "\n")
     print(Dates.format(now(), "[yyyy-mm-dd HH:MM:SS.sss] "))
-    for (k, v) in d
-        print("$k: $v; ")
+    for data in (saving_data, printing_data)
+        for (k, v) in data
+            print("$k: $v; ")
+        end
     end
     println()
 end

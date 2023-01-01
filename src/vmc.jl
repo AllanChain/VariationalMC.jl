@@ -77,6 +77,8 @@ function vmc(config::Config)
                     "t" => t,
                     "energy" => ev,
                     "var" => σ²e,
+                ),
+                OrderedDict(
                     "acceptance" => acceptance,
                 ),
             )
