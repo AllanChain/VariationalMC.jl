@@ -4,6 +4,7 @@ using Statistics
 using LinearAlgebra
 using StructArrays
 using Distances
+using OrderedCollections
 
 export vmc
 
@@ -65,24 +66,34 @@ function vmc(config::Config)
     end
 
     last_check_time = time()
-    for t = optimizer.t:config.qmc.iterations
-        el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
-        ev = mean(el)
-        σ²e = var(el)
-        println("Loop $t; Energy $ev; Variance $σ²e; Acceptance $acceptance")
-        update_func!(wf, step!(optimizer, ∂p_E))
-        width, acceptance =
-            batch_mcmc_walk!(config.mcmc.steps, wf, molecule, walkers, width)
-        if (
-            config.checkpoint.save_path != "" &&
-            (time() - last_check_time) * 1e-6 > config.checkpoint.save_interval
-        )
-            last_check_time = time()
-            ckpt_file = checkpoint.save(
-                config.checkpoint.save_path,
-                t, wf, walkers, optimizer, width,
+    with_stats(config.checkpoint.restore_path, config.checkpoint.save_path) do stats
+        for t = optimizer.t:config.qmc.iterations
+            el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
+            ev = mean(el)
+            σ²e = var(el)
+            log_stats(
+                stats,
+                OrderedDict(
+                    "t" => t,
+                    "energy" => ev,
+                    "var" => σ²e,
+                    "acceptance" => acceptance,
+                ),
             )
-            @info "Saved checkpoint to $ckpt_file"
+            update_func!(wf, step!(optimizer, ∂p_E))
+            width, acceptance =
+                batch_mcmc_walk!(config.mcmc.steps, wf, molecule, walkers, width)
+            if (
+                config.checkpoint.save_path != "" &&
+                (time() - last_check_time) / 1000 > config.checkpoint.save_interval
+            )
+                last_check_time = time()
+                ckpt_file = checkpoint.save(
+                    config.checkpoint.save_path,
+                    t, wf, walkers, optimizer, width,
+                )
+                @info "Saved checkpoint to $ckpt_file"
+            end
         end
     end
     ckpt_file = checkpoint.save(

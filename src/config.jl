@@ -28,7 +28,7 @@ end
 @option struct CheckpointConfig
     restore_path::String = ""
     save_path::String = ""
-    save_interval::Int = 600
+    save_interval::Int = 60
 end
 
 @option struct Config

@@ -27,6 +27,7 @@ using .funcs
 using .optimizer
 import .checkpoint
 include("config.jl")
+include("stats.jl")
 include("hamiltonian.jl")
 include("mcmc.jl")
 include("vmc.jl")
