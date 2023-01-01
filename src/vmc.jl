@@ -58,7 +58,11 @@ function vmc(config::Config)
         @warn "checkpoint.save_path not provided. Saving checkpoint is skipped."
     elseif !ispath(config.checkpoint.save_path)
         mkdir(config.checkpoint.save_path)
-        to_toml(joinpath(config.checkpoint.save_path, "full-config.toml"), config)
+    end
+
+    config_log_file = joinpath(config.checkpoint.save_path, "full-config.toml")
+    if !ispath(config_log_file)
+        to_toml(config_log_file, config)
     end
 
     if optimizer.t > config.qmc.iterations
