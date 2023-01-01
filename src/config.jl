@@ -17,6 +17,7 @@ end
     iterations::Int = 20
     batch_size::Int = 256
     ansatz::String = "slater"
+    seed::Union{Int, Nothing} = nothing
 end
 
 @option struct MCMCConfig

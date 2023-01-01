@@ -5,6 +5,7 @@ using LinearAlgebra
 using StructArrays
 using Distances
 using OrderedCollections
+using Random
 import Configurations: to_toml
 
 export vmc
@@ -23,6 +24,11 @@ end
 
 function vmc(config::Config)
     molecule = build_molecule(config)
+
+    if config.qmc.seed !== nothing
+        Random.seed!(config.qmc.seed)
+        @info "Setting random seed to $(config.qmc.seed)."
+    end
 
     ckpt_file = checkpoint.find_most_recent(config.checkpoint.restore_path)
     if ckpt_file == "" # No checkpoint found
@@ -66,7 +72,7 @@ function vmc(config::Config)
     end
 
     if optimizer.t > config.qmc.iterations
-        @info "Already done. Exiting."
+        @info "Already done $(config.qmc.iterations) iterations. Exiting."
         return
     end
 
