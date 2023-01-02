@@ -3,19 +3,24 @@ import VariationalMC.optimizer: Optimizer
 import VariationalMC.funcs: WaveFunction
 import Printf: @sprintf
 
-const CKPT_NAME = "vmcjl_ckpt"
+get_ckpt_name(optimizing::Bool = true) = optimizing ? "optim-ckpt-" : "eval-ckpt-"
 
-function find_all(restore_path::AbstractString)::Vector{String}
+function find_all(restore_path::AbstractString, optimizing::Bool = true)::Vector{String}
     if !ispath(restore_path)
         return Vector{String}()
     end
-    return filter(s -> startswith(s, CKPT_NAME), readdir(restore_path))
+    return filter(s -> startswith(s, get_ckpt_name(optimizing)), readdir(restore_path))
 end
 
-function find_most_recent(restore_path::AbstractString)::String
-    ckpts = find_all(restore_path)
+function find_most_recent(restore_path::AbstractString; optimizing::Bool = true)::String
+    ckpts = find_all(restore_path, optimizing)
     if length(ckpts) == 0
-        return ""
+        if optimizing
+            return ""
+        end
+        # If in evaluation mode and no evaluation has been performed,
+        # try doing evaluation from optimization results.
+        return find_most_recent(restore_path; optimizing = true)
     end
     return joinpath(restore_path, maximum(ckpts))
 end
@@ -27,7 +32,7 @@ function load(
     return (data["wf"], data["walkers"], data["opt_state"], data["width"])
 end
 
-function smallest_n!(a, n) 
+function smallest_n!(a, n)
     partialsort!(a, n)
     return a[1:n]
 end
@@ -40,9 +45,10 @@ function save(
     opt_state::Optimizer,
     width::Float64;
     clean_old::Int = 10,
+    optimizing::Bool = true,
 )::String
-    old_ckpts = find_all(save_path)
-    filename = @sprintf "%s%06d.jld" CKPT_NAME iteration
+    old_ckpts = find_all(save_path, optimizing)
+    filename = @sprintf "%s%06d.jld" get_ckpt_name(optimizing) iteration
     ckpt_file = joinpath(save_path, filename)
     JLD.@save ckpt_file wf walkers opt_state width
     if length(old_ckpts) > clean_old > 0 # clean_old <= 0 will not clean

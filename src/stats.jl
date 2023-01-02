@@ -5,18 +5,22 @@ mutable struct StatsLogger
     should_add_header::Bool
 end
 
-const STATS_FILE = "vmcjl-stats.csv"
 
-
-function with_stats(f::Function, restore_path::AbstractString, save_path::AbstractString)
-    stats_file = joinpath(save_path, STATS_FILE)
+function with_stats(
+    f::Function,
+    restore_path::AbstractString,
+    save_path::AbstractString;
+    optimizing::Bool = true,
+)
+    stats_filename = optimizing ? "optim-stats.csv" : "eval-stats.csv"
+    stats_file = joinpath(save_path, stats_filename)
     if restore_path != save_path && ispath(stats_file)
         error("Cannot overwrite stats file $stats_file without restoring from it!")
     end
     if restore_path == "" # Nothing to restore
         fresh_start = true
     elseif restore_path != save_path # Restoring from different location
-        prev_stats_file = joinpath(restore_path, STATS_FILE)
+        prev_stats_file = joinpath(restore_path, stats_filename)
         if filesize(prev_stats_file) > 0 # File exists and has content
             cp(prev_stats_file, stats_file)
             fresh_start = false

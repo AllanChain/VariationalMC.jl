@@ -1,7 +1,7 @@
 import VariationalMC.funcs: WaveFunction, zeros_like_params
 import VariationalMC.config: AdamConfig, SGDConfig
 
-export Optimizer, AdamOptimizer, SGDOptimizer, step!
+export Optimizer, AdamOptimizer, SGDOptimizer, NothingOptimizer, step!
 
 TupleParams = Tuple{Vararg{Union{AbstractArray{Float64},Float64}}}
 
@@ -66,4 +66,15 @@ function step!(sgd::SGDOptimizer, dp_el::TupleParams)::TupleParams
         sgd.learning_rate *= sgd.decay_rate
     end
     return -sgd.learning_rate .* dp_el
+end
+
+mutable struct NothingOptimizer <: Optimizer
+    t::Int
+    zero::TupleParams
+    NothingOptimizer(wf::WaveFunction) = new(0, zeros_like_params(wf))
+end
+
+function step!(noop::NothingOptimizer, ::TupleParams)::TupleParams
+    noop.t += 1
+    return noop.zero
 end

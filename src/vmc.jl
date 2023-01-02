@@ -30,9 +30,20 @@ function vmc(config::Config)
         @info "Setting random seed to $(config.qmc.seed)."
     end
 
-    ckpt_file = checkpoint.find_most_recent(config.checkpoint.restore_path)
-    if ckpt_file == "" # No checkpoint found
-        @warn "Checkpoint not found. Performing new VMC."
+    optimizing = config.optim.optimizer != "nothing"
+    ckpt_file = checkpoint.find_most_recent(
+        config.checkpoint.restore_path;
+        optimizing = optimizing,
+    )
+    if ckpt_file == ""
+        if optimizing
+            @warn "Checkpoint not found. Performing new VMC."
+        else
+            error(
+                "Neither optimization nor evaluation checkpoints exist. " *
+                "Cannot perform evaluation.",
+            )
+        end
 
         if config.qmc.ansatz == "slater"
             wf = SlaterDetProd(molecule)
@@ -58,6 +69,10 @@ function vmc(config::Config)
         wf, walkers, optimizer, width = checkpoint.load(ckpt_file)
         acceptance = NaN
         @info "Checkpoint loaded from $ckpt_file"
+        if !isa(optimizer, NothingOptimizer)
+            optimizer = NothingOptimizer(wf)
+            @info "Performing new evaluation."
+        end
     end
 
     if config.checkpoint.save_path == ""
@@ -77,7 +92,11 @@ function vmc(config::Config)
     end
 
     last_check_time = time()
-    with_stats(config.checkpoint.restore_path, config.checkpoint.save_path) do stats
+    with_stats(
+        config.checkpoint.restore_path,
+        config.checkpoint.save_path;
+        optimizing = optimizing,
+    ) do stats
         for t = optimizer.t:config.qmc.iterations
             el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
             ev = mean(el)
@@ -103,7 +122,8 @@ function vmc(config::Config)
                 last_check_time = time()
                 ckpt_file = checkpoint.save(
                     config.checkpoint.save_path,
-                    t, wf, walkers, optimizer, width,
+                    t, wf, walkers, optimizer, width;
+                    optimizing = optimizing,
                 )
                 @info "Saved checkpoint to $ckpt_file"
             end
@@ -111,8 +131,8 @@ function vmc(config::Config)
     end
     ckpt_file = checkpoint.save(
         config.checkpoint.save_path,
-        config.qmc.iterations,
-        wf, walkers, optimizer, width,
+        optimizer.t - 1, wf, walkers, optimizer, width;
+        optimizing = optimizing,
     )
     @info "Saved checkpoint to $ckpt_file"
 
