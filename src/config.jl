@@ -34,7 +34,7 @@ end
 @option struct AdamConfig
     beta1::Float64 = 0.9     # Exp. decay first moment
     beta2::Float64 = 0.999   # Exp. decay second moment
-    a::Float64 = 0.1         # Step size
+    a::Float64 = 0.05        # Step size
     epsilon::Float64 = 1e-8  # Epsilon for stability
 end
 
