@@ -1,0 +1,39 @@
+[qmc]
+iterations = 3
+batch_size = 256
+
+[system]
+basis = "6-31g"
+spins = [4, 4]
+
+[[system.atoms]]
+name = "H"
+coord = [0.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [2.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [4.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [6.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [8.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [10.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [12.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [14.0, 0.0, 0.0]

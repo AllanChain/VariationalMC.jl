@@ -1,5 +1,6 @@
 [qmc]
-batch_size = 256
+batch_size = 16384
+iterations = 500
 
 [system]
 basis = "6-31g"

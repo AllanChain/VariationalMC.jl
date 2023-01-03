@@ -1,0 +1,12 @@
+[qmc]
+batch_size = 1024
+iterations = 4000
+
+[system]
+basis = "6-31g"
+spins = [4, 6]
+
+[[system.atoms]]
+name = "Ne"
+coord = [0.0, 0.0, 0.0]
+

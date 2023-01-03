@@ -1,0 +1,119 @@
+[qmc]
+iterations = 3
+batch_size = 256
+
+[system]
+basis = "6-31g"
+spins = [14, 14]
+
+[[system.atoms]]
+name = "H"
+coord = [0.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [2.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [4.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [6.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [8.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [10.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [12.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [14.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [16.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [18.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [20.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [22.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [24.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [26.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [28.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [30.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [32.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [34.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [36.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [38.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [40.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [42.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [44.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [46.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [48.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [50.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [52.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "H"
+coord = [54.0, 0.0, 0.0]

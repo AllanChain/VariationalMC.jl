@@ -1,0 +1,15 @@
+[qmc]
+batch_size = 2048
+iterations = 3000
+
+[system]
+basis = "6-31g"
+spins = [3, 3]
+
+[[system.atoms]]
+name = "Li"
+coord = [0.0, 0.0, 0.0]
+
+[[system.atoms]]
+name = "Li"
+coord = [5.0, 0.0, 0.0]
