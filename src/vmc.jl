@@ -69,7 +69,7 @@ function vmc(config::Config)
         wf, walkers, optimizer, width = checkpoint.load(ckpt_file)
         acceptance = NaN
         @info "Checkpoint loaded from $ckpt_file"
-        if !isa(optimizer, NothingOptimizer)
+        if ! optimizing && !isa(optimizer, NothingOptimizer)
             optimizer = NothingOptimizer(wf)
             @info "Performing new evaluation."
         end
