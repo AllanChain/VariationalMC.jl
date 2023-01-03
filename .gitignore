@@ -2,3 +2,6 @@
 data/
 # null-ls.nvim temp files
 .null-ls*
+
+# Python venv
+.venv/
