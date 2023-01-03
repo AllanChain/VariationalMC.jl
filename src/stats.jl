@@ -12,6 +12,9 @@ function with_stats(
     save_path::AbstractString;
     optimizing::Bool = true,
 )
+    if save_path == ""
+        f(nothing)
+    end
     stats_filename = optimizing ? "optim-stats.csv" : "eval-stats.csv"
     stats_file = joinpath(save_path, stats_filename)
     if restore_path != save_path && ispath(stats_file)
@@ -39,16 +42,18 @@ function with_stats(
 end
 
 function log_stats(
-    stats::StatsLogger,
+    stats::Union{StatsLogger,Nothing},
     saving_data::AbstractDict,
     printing_data::AbstractDict,
 )
-    if stats.should_add_header
-        write(stats.stream, join(keys(saving_data), ",") * "\n")
-        stats.should_add_header = false
+    if stats !== nothing
+        if stats.should_add_header
+            write(stats.stream, join(keys(saving_data), ",") * "\n")
+            stats.should_add_header = false
+        end
+        write(stats.stream, join(values(saving_data), ",") * "\n")
+        flush(stats.stream)
     end
-    write(stats.stream, join(values(saving_data), ",") * "\n")
-    flush(stats.stream)
 
     print(Dates.format(now(), "[yyyy-mm-dd HH:MM:SS.sss] "))
     for data in (saving_data, printing_data)

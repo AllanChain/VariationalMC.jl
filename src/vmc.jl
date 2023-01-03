@@ -69,7 +69,7 @@ function vmc(config::Config)
         wf, walkers, optimizer, width = checkpoint.load(ckpt_file)
         acceptance = NaN
         @info "Checkpoint loaded from $ckpt_file"
-        if ! optimizing && !isa(optimizer, NothingOptimizer)
+        if !optimizing && !isa(optimizer, NothingOptimizer)
             optimizer = NothingOptimizer(wf)
             @info "Performing new evaluation."
         end
@@ -77,13 +77,14 @@ function vmc(config::Config)
 
     if config.checkpoint.save_path == ""
         @warn "checkpoint.save_path not provided. Saving checkpoint is skipped."
-    elseif !ispath(config.checkpoint.save_path)
-        mkdir(config.checkpoint.save_path)
-    end
-
-    config_log_file = joinpath(config.checkpoint.save_path, "full-config.toml")
-    if !ispath(config_log_file)
-        to_toml(config_log_file, config)
+    else
+        if !ispath(config.checkpoint.save_path)
+            mkdir(config.checkpoint.save_path)
+        end
+        config_log_file = joinpath(config.checkpoint.save_path, "full-config.toml")
+        if !ispath(config_log_file)
+            to_toml(config_log_file, config)
+        end
     end
 
     if optimizer.t > config.qmc.iterations
@@ -91,13 +92,14 @@ function vmc(config::Config)
         return
     end
 
-    last_check_time = time()
+    start_time = last_check_time = time()
+    iterations_to_run = config.qmc.iterations - optimizer.t
     with_stats(
         config.checkpoint.restore_path,
         config.checkpoint.save_path;
         optimizing = optimizing,
     ) do stats
-        for t = optimizer.t:config.qmc.iterations
+        for t = optimizer.t+1:config.qmc.iterations
             el, ∂p_E = local_energy_deriv_params(wf, molecule, walkers)
             ev = mean(el)
             σ²e = var(el)
@@ -129,12 +131,15 @@ function vmc(config::Config)
             end
         end
     end
-    ckpt_file = checkpoint.save(
-        config.checkpoint.save_path,
-        optimizer.t - 1, wf, walkers, optimizer, width;
-        optimizing = optimizing,
-    )
-    @info "Saved checkpoint to $ckpt_file"
+    @info "Time per iteration $((time() - start_time) / iterations_to_run)"
+    if config.checkpoint.save_path != ""
+        ckpt_file = checkpoint.save(
+            config.checkpoint.save_path,
+            optimizer.t, wf, walkers, optimizer, width;
+            optimizing = optimizing,
+        )
+        @info "Saved checkpoint to $ckpt_file"
+    end
 
     return wf, walkers
 end

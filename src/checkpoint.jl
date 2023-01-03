@@ -1,6 +1,6 @@
 import JLD
 import VariationalMC.optimizer: Optimizer
-import VariationalMC.funcs: WaveFunction
+using VariationalMC.funcs
 import Printf: @sprintf
 
 get_ckpt_name(optimizing::Bool = true) = optimizing ? "optim-ckpt-" : "eval-ckpt-"
