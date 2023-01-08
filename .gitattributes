@@ -1,0 +1,3 @@
+# Pluto.jl stores whole Manifest.toml in the notebook
+# Just ignore notebook language count
+/notebooks/optim-perf.jl linguist-documentation
